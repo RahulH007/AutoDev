@@ -1,19 +1,11 @@
 import json
-import re
 import os
 
-
-def save_llm_json(response_text: str, filename: str, folder: str):
+def save_llm_json(data: dict, filename: str, folder="memory"):
     """
-    Extract JSON from LLM response and save it to a folder.
+    Save dictionary data as JSON.
     """
 
-    # remove ```json formatting
-    cleaned = re.sub(r"```json|```", "", response_text).strip()
-
-    data = json.loads(cleaned)
-
-    # create folder if it doesn't exist
     os.makedirs(folder, exist_ok=True)
 
     filepath = os.path.join(folder, filename)
@@ -23,4 +15,4 @@ def save_llm_json(response_text: str, filename: str, folder: str):
 
     print(f"✅ Saved JSON to {filepath}")
 
-    return cleaned
+    return filepath

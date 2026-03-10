@@ -1,2 +1,5 @@
 structure.txt
 .env
+git_command.txt
+__pycache__/
+*.pyc
