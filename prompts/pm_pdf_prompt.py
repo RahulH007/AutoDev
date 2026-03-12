@@ -1,99 +1,108 @@
-def get_pm_doc_prompt(user_requirements: str, json_response: dict) -> str:
-    return f"""
-You are a senior product manager at a top-tier technology company with 15+ years of experience 
-shipping successful B2B and B2C products. You are known for writing PRDs that are thorough, 
-opinionated, and immediately actionable by engineering and design teams.
+from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
-Your task is to write a comprehensive Product Requirements Document (PRD) based on the inputs below.
+import json
+from langchain_core.messages import SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
-<product_brief>
+
+def get_pm_doc_prompt(user_requirements: str, json_response: dict) -> list:
+    json_str = json.dumps(json_response, indent=2)
+
+    prompt_template = ChatPromptTemplate.from_messages([
+        SystemMessage(content="""You are a senior product manager at a top-tier technology company with 15+ years of experience shipping successful B2B and B2C products.
+
+IMPORTANT — PURPOSE OF THIS DOCUMENT:
+Your PRD will be converted into a polished PDF delivered directly to the client. The client must walk away clearly understanding where their project is heading — what's being built, why, and what success looks like.
+
+CRITICAL — KEEP IT CONCISE:
+- This is a CLIENT-FACING document, not an internal engineering spec.
+- Clients are NOT technical — they care about outcomes, not implementation details.
+- Every section must be brief, clear, and scannable.
+- If a section can be said in 3 bullet points, do not write 10.
+- Avoid technical jargon, deep implementation details, and exhaustive lists.
+- When in doubt, cut it out. Clarity beats completeness.
+- The full document must be 900–1200 words maximum.
+- Limit MVP features to 4–6 maximum.
+
+Hallucination Guard:
+- Do not invent features, users, or requirements not present or implied by the structured analysis.
+- If the brief and structured analysis conflict, prefer the structured analysis.
+
+Formatting Rules:
+- Output must be valid Markdown.
+- Use headings exactly as specified in the template.
+- Do not add sections outside the defined structure.
+- Short paragraphs and bullet points over dense prose.
+- Bold key terms on first use.
+- Use tables only when they genuinely aid clarity.
+
+Tone & Style:
+- Plain, confident business English.
+- Think: executive briefing, not engineering documentation."""),
+
+        HumanMessagePromptTemplate.from_template("""<product_brief>
 {user_requirements}
 </product_brief>
 
 <structured_analysis>
-{json_response}
+{json_str}
 </structured_analysis>
-
-The structured analysis above was produced by a PM agent and contains the authoritative breakdown 
-of features, entities, modules, APIs, requirements, and constraints. Your PRD must be fully 
-consistent with it — do not contradict, omit, or invent information that conflicts with it.
-If the brief and structured analysis conflict, prefer the structured analysis.
 
 ---
 
-Write the PRD using the structure below. Every section must be fully written in professional prose 
-— no placeholders, no "TBD", no skipped sections. If information is not explicitly stated in the 
-brief, make reasonable, clearly-labeled assumptions.
+Write a concise, client-friendly PRD using the structure below. Every section should be short and to the point. No placeholders, no TBDs, no unnecessary detail.
 
 ---
 
 # [Product Name] — Product Requirements Document
 
 ## 1. Executive Summary
-A concise 3–5 sentence overview of the product: what it is, who it's for, and why it matters now.
+2–3 sentences max. What is it, who is it for, and why does it matter?
 
-## 2. Problem Statement
-- What specific problem are we solving?
-- Who experiences this problem, and how severely?
-- What are the consequences of not solving it?
-- Include a brief "current state vs. desired state" contrast.
+## 2. Problem Covering
+3–5 bullet points covering: the problem, who faces it, and the impact of not solving it.
 
 ## 3. Goals & Success Metrics
-- Business goals (revenue, retention, market share)
-- User goals (job-to-be-done)
-- Define 3–5 measurable KPIs with target values and timeframes
+- 2–3 business goals
+- 3 measurable KPIs with targets
 
-## 4. Target Users & Personas
-For each persona include: name, role, goals, pain points, and technical proficiency.
-Identify the primary persona that drives core design decisions.
+## 4. Target Users
+One short paragraph per persona. Name, role, and key pain point. Max 2 personas.
 
 ## 5. Scope
-### 5.1 In Scope
-List what this product/version will cover.
-### 5.2 Out of Scope
-Explicitly list what is excluded and, where relevant, why. Use the out_of_scope field from 
-the structured analysis.
+### In Scope
+Bullet list — what this version covers.
+### Out of Scope
+Bullet list — what is explicitly excluded.
 
-## 6. Features & Requirements
-### 6.1 Core Features (MVP)
-For each feature where is_mvp=true in the structured analysis:
-- Feature name and one-line summary
-- Detailed description
-- User story: "As a [persona], I want to [action] so that [outcome]"
-- Acceptance criteria (bullet list)
-- Priority: Must-have / Should-have / Nice-to-have
+## 6. Core Features (MVP)
+4–6 features maximum. For each:
+- **Feature Name** — one line description
+- What it does and why it matters (2–3 sentences max)
+- 2–3 acceptance criteria
 
-### 6.2 Post-MVP Features
-List features where is_mvp=false with brief rationale for deferral.
+Post-MVP: a single bullet list, no elaboration.
 
-## 7. User Flows
-Derive from the user_flows field in the structured analysis.
-Describe each flow in numbered steps. Cover the happy path and at least one edge case per flow.
+## 7. Key User Flows
+Short numbered steps per flow (happy path only). Max 5 flows.
 
 ## 8. Non-Functional Requirements
-Derive from non_functional_requirements in the structured analysis.
-Cover: Performance, Security, Scalability, Accessibility, and Reliability.
-Each with a specific, measurable target where possible.
+| Category | Requirement | Target |
+|----------|------------|--------|
+Cover only: Performance, Security, Scalability.
 
-## 9. Assumptions & Dependencies
-- Use the assumptions field from the structured analysis
-- External dependencies (third-party services, APIs, teams)
-
-## 10. Open Questions & Risks
-| # | Question / Risk | Owner | Status |
-|---|----------------|-------|--------|
-Derive from open_questions in the structured analysis.
-
-## 11. Appendix
-Any supporting definitions, references, or diagram descriptions relevant to understanding the PRD.
-Include a summary of the data entities and modules from the structured analysis.
+## 9. Open Questions & Risks
+Top 3–5 items only:
+| # | Question / Risk | Status |
+|---|----------------|--------|
 
 ---
 
-Tone & style guidelines:
-- Write in clear, direct business English
-- Avoid vague language ("fast", "easy", "scalable") — always qualify with specifics
-- Use tables where comparisons or structured data aid clarity
-- Bold key terms on first use
-- This document will be read by engineers, designers, and stakeholders — calibrate depth accordingly
-"""
+Now write the complete PRD. Keep it tight — a client should be able to read and understand this in under 10 minutes.""")
+    ])
+
+    return prompt_template.format_messages(
+        user_requirements=user_requirements,
+        json_str=json_str
+    )

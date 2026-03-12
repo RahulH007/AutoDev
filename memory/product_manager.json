@@ -1,247 +1,443 @@
 {
-    "product_name": "Simple E-commerce Product Browser",
-    "product_summary": "A foundational e-commerce website enabling users to browse a catalog of products, view their details, and add selected items to a shopping cart for potential future purchase.",
-    "problem_statement": "Online shoppers require a straightforward and intuitive platform to discover products and compile a list of desired items without immediate commitment to purchase, streamlining the initial selection process.",
+    "product_name": "AI Reddit Trend & Post Generator",
+    "product_summary": "An AI-powered agent designed to automatically identify trending topics on Reddit, extract key insights, and generate relevant, engaging post drafts for users to review and publish.",
+    "problem_statement": "Content creators and marketers often struggle to keep up with rapidly changing trends on Reddit, leading to missed opportunities for timely and relevant content creation. Manually sifting through Reddit for trending topics and then crafting posts is time-consuming and inefficient.",
     "target_users": [
-        "Online Shoppers",
-        "Individuals seeking to browse products",
-        "Customers looking to build a shopping list"
+        "Social Media Managers",
+        "Content Creators",
+        "Digital Marketers",
+        "Reddit Power Users",
+        "Community Managers"
     ],
     "success_metrics": [
-        "Number of unique product views per session",
-        "Percentage of products added to cart after viewing details",
-        "Average number of items in cart per user session",
-        "User retention rate (returning visitors)"
+        "Increase in the number of trending topics identified per day by 20%",
+        "Reduction in time spent by users on trend research by 30%",
+        "Average user satisfaction score of 4/5 for generated post quality",
+        "Number of generated posts reviewed and accepted by users per week"
     ],
     "features": [
         {
-            "name": "Product Listing Page",
-            "description": "Displays a catalog of all available products with essential information.",
+            "name": "Reddit Trending Post Discovery",
+            "description": "Automatically connect to the Reddit API to fetch posts from specified subreddits and identify those that are currently trending based on configurable metrics (e.g., upvotes, comments, recency).",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "All available products are listed",
-                "Each product shows name, price, and a thumbnail image",
-                "Products are displayed in a clear, scrollable format"
+                "The system can successfully connect to the Reddit API.",
+                "The system can fetch posts from a configurable list of subreddits.",
+                "The system can identify and list posts as 'trending' based on a defined algorithm (e.g., top 100 posts by upvotes in the last 24 hours).",
+                "Trending posts include title, URL, subreddit, upvotes, and comment count."
             ]
         },
         {
-            "name": "Product Detail Page",
-            "description": "Provides comprehensive information for a single product.",
+            "name": "Trending Topic Extraction",
+            "description": "From the identified trending posts, use AI to extract overarching themes, keywords, and key discussion points that represent the core trending topics.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "Displays product name, detailed description, price, and multiple images",
-                "Includes an 'Add to Cart' button",
-                "Users can navigate to this page from the product listing"
+                "The system can process a set of trending posts and identify distinct topics.",
+                "Each identified topic includes a concise name and relevant keywords.",
+                "The system can associate multiple trending posts with a single extracted topic.",
+                "Topic extraction accuracy is at least 80% as judged by human review."
             ]
         },
         {
-            "name": "Shopping Cart",
-            "description": "Allows users to collect products they wish to purchase.",
+            "name": "AI Post Generation (Draft)",
+            "description": "Generate a new Reddit-style post (title and body) based on a selected trending topic. The generated post should be relevant, engaging, and adhere to a specified tone.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "Users can add products from the product detail page to the cart",
-                "The cart displays a list of added products with their quantities and subtotal",
-                "Users can adjust the quantity of items in the cart",
-                "Users can remove items from the cart",
-                "The cart icon/indicator shows the number of items currently in the cart"
+                "Given a trending topic, the system can generate a unique post title.",
+                "Given a trending topic, the system can generate a post body (text content).",
+                "Generated posts are grammatically correct and coherent.",
+                "Generated posts are relevant to the selected trending topic.",
+                "Users can view the generated post draft within the application."
+            ]
+        },
+        {
+            "name": "User Interface for Trend & Post Management",
+            "description": "A web-based interface allowing users to view trending topics, trigger post generation, and review/edit generated post drafts.",
+            "priority": "high",
+            "is_mvp": true,
+            "acceptance_criteria": [
+                "Users can log in and access the application.",
+                "The UI displays a list of currently trending topics.",
+                "Users can select a trending topic and initiate post generation.",
+                "The UI displays generated post drafts for review.",
+                "Users can copy the generated post content to their clipboard."
+            ]
+        },
+        {
+            "name": "Configurable Subreddit Monitoring",
+            "description": "Allow users to specify which subreddits the agent should monitor for trending posts.",
+            "priority": "medium",
+            "is_mvp": false,
+            "acceptance_criteria": [
+                "Users can add new subreddits to a monitoring list.",
+                "Users can remove subreddits from the monitoring list.",
+                "The system only fetches posts from the configured subreddits."
+            ]
+        },
+        {
+            "name": "Post Editing & Refinement",
+            "description": "Provide tools within the UI to edit and refine generated post drafts before copying them.",
+            "priority": "medium",
+            "is_mvp": false,
+            "acceptance_criteria": [
+                "Users can modify the title and body of a generated post draft.",
+                "Changes made by the user are saved to the draft."
             ]
         }
     ],
     "user_flows": [
         {
-            "name": "Browse Products and Add to Cart",
-            "actor": "Shopper",
+            "name": "Discover Trending Topics",
+            "actor": "Content Creator",
             "steps": [
-                "Shopper lands on the homepage/product listing page.",
-                "Shopper scrolls through the list of products.",
-                "Shopper clicks on a product to view its details.",
-                "Shopper reviews product details (description, price, images).",
-                "Shopper clicks 'Add to Cart' button.",
-                "System confirms item added to cart (e.g., cart icon updates).",
-                "Shopper can continue browsing or view the cart."
+                "Content Creator logs into the AI Reddit Trend & Post Generator.",
+                "System automatically displays a dashboard with the latest trending topics.",
+                "Content Creator reviews the list of trending topics, including associated keywords and example posts."
             ],
             "related_features": [
-                "Product Listing Page",
-                "Product Detail Page",
-                "Shopping Cart"
+                "Reddit Trending Post Discovery",
+                "Trending Topic Extraction",
+                "User Interface for Trend & Post Management"
+            ]
+        },
+        {
+            "name": "Generate a New Post Draft",
+            "actor": "Content Creator",
+            "steps": [
+                "Content Creator views the list of trending topics.",
+                "Content Creator selects a specific trending topic of interest.",
+                "Content Creator clicks 'Generate Post' button.",
+                "System sends a request to the AI Post Generation module.",
+                "System displays the AI-generated post draft (title and body) in the UI.",
+                "Content Creator reviews the generated post."
+            ],
+            "related_features": [
+                "Trending Topic Extraction",
+                "AI Post Generation (Draft)",
+                "User Interface for Trend & Post Management"
             ]
         }
     ],
     "modules": [
         {
-            "name": "Product Catalog Service",
-            "responsibility": "Manages all product information, including details, images, and availability.",
+            "name": "Authentication & User Management",
+            "responsibility": "Handles user registration, login, session management, and user profile data.",
             "exposes": [
-                "Get all products",
-                "Get product by ID"
+                "POST /register",
+                "POST /login",
+                "GET /me"
             ],
             "depends_on": []
         },
         {
-            "name": "Shopping Cart Service",
-            "responsibility": "Manages user-specific shopping cart contents.",
+            "name": "Reddit Integration Service",
+            "responsibility": "Manages all interactions with the Reddit API, including fetching posts, subreddits, and handling rate limits.",
             "exposes": [
-                "Add item to cart",
-                "Remove item from cart",
-                "Update item quantity in cart",
-                "Get cart contents by user/session"
+                "GET /reddit/posts/trending",
+                "GET /reddit/subreddits/{name}/posts"
+            ],
+            "depends_on": []
+        },
+        {
+            "name": "Trend Analysis Service",
+            "responsibility": "Processes raw Reddit post data to identify trending topics, extract keywords, and categorize content.",
+            "exposes": [
+                "POST /trends/analyze",
+                "GET /trends"
             ],
             "depends_on": [
-                "Product Catalog Service"
+                "Reddit Integration Service"
             ]
         },
         {
-            "name": "Frontend UI",
-            "responsibility": "Renders the user interface for product browsing and cart management.",
+            "name": "Content Generation Service",
+            "responsibility": "Utilizes Large Language Models (LLMs) to generate post titles and bodies based on identified trending topics.",
+            "exposes": [
+                "POST /content/generate"
+            ],
+            "depends_on": [
+                "Trend Analysis Service"
+            ]
+        },
+        {
+            "name": "Post Management Service",
+            "responsibility": "Stores, retrieves, and manages generated post drafts, allowing for review and editing.",
+            "exposes": [
+                "GET /posts/{id}",
+                "GET /posts",
+                "PUT /posts/{id}",
+                "DELETE /posts/{id}"
+            ],
+            "depends_on": [
+                "Content Generation Service"
+            ]
+        },
+        {
+            "name": "User Interface (Frontend)",
+            "responsibility": "Provides the web-based graphical interface for users to interact with the system.",
             "exposes": [],
             "depends_on": [
-                "Product Catalog Service",
-                "Shopping Cart Service"
+                "Authentication & User Management",
+                "Trend Analysis Service",
+                "Post Management Service"
             ]
         }
     ],
     "suggested_tech_stack": [
-        "React (Frontend)",
-        "Node.js/Express (Backend API)",
-        "MongoDB/PostgreSQL (Database)"
+        "Python (Backend logic, AI/ML)",
+        "FastAPI (Backend API framework)",
+        "PostgreSQL (Primary data store)",
+        "Redis (Caching, task queues)",
+        "React/Vue.js (Frontend framework)",
+        "OpenAI API / Hugging Face Transformers (LLM for content generation)",
+        "PRAW (Python Reddit API Wrapper)"
     ],
-    "expected_scale": "100 concurrent users at launch, 10k daily active users within 6 months",
+    "expected_scale": "Initial launch: 100-500 daily active users, processing ~50,000 Reddit posts daily. Within 1 year: 5,000-10,000 daily active users, processing ~500,000 Reddit posts daily.",
     "data_entities": [
         {
-            "name": "Product",
-            "description": "Represents an item available for sale.",
+            "name": "User",
+            "description": "Represents a user of the AI Reddit Trend & Post Generator.",
             "key_attributes": [
-                "product_id (unique identifier)",
-                "name",
-                "description",
-                "price",
-                "image_urls",
-                "stock_quantity"
-            ],
-            "relationships": []
-        },
-        {
-            "name": "CartItem",
-            "description": "Represents a single product within a user's shopping cart.",
-            "key_attributes": [
-                "cart_item_id",
-                "product_id",
-                "quantity",
-                "session_id (or user_id if authenticated)"
+                "user_id (PK)",
+                "username",
+                "email",
+                "password_hash",
+                "created_at"
             ],
             "relationships": [
-                "Many-to-one with Product (via product_id)"
+                "One-to-Many with GeneratedPost (a user can generate many posts)"
+            ]
+        },
+        {
+            "name": "RedditPost",
+            "description": "Stores raw data of a Reddit post fetched from the Reddit API.",
+            "key_attributes": [
+                "reddit_post_id (PK)",
+                "title",
+                "url",
+                "subreddit_name",
+                "author",
+                "upvotes",
+                "comments_count",
+                "created_utc",
+                "fetched_at"
+            ],
+            "relationships": [
+                "Many-to-Many with TrendingTopic (a RedditPost can contribute to multiple topics, a topic can be derived from many posts)"
+            ]
+        },
+        {
+            "name": "TrendingTopic",
+            "description": "Represents an identified trending theme or topic derived from multiple Reddit posts.",
+            "key_attributes": [
+                "topic_id (PK)",
+                "name",
+                "keywords (array of strings)",
+                "trend_score",
+                "discovered_at",
+                "last_updated_at"
+            ],
+            "relationships": [
+                "Many-to-Many with RedditPost",
+                "One-to-Many with GeneratedPost (a topic can inspire many generated posts)"
+            ]
+        },
+        {
+            "name": "GeneratedPost",
+            "description": "Stores the AI-generated post content (drafts).",
+            "key_attributes": [
+                "generated_post_id (PK)",
+                "user_id (FK)",
+                "topic_id (FK)",
+                "title",
+                "body",
+                "generated_at",
+                "last_edited_at",
+                "status (e.g., 'draft', 'published', 'discarded')"
+            ],
+            "relationships": [
+                "Many-to-One with User",
+                "Many-to-One with TrendingTopic"
+            ]
+        },
+        {
+            "name": "MonitoredSubreddit",
+            "description": "A list of subreddits configured by the user to be monitored for trends.",
+            "key_attributes": [
+                "subreddit_id (PK)",
+                "user_id (FK)",
+                "subreddit_name",
+                "added_at"
+            ],
+            "relationships": [
+                "Many-to-One with User"
             ]
         }
     ],
     "possible_apis": [
         {
-            "method": "GET",
-            "path": "/products",
-            "description": "Retrieve a list of all available products.",
+            "method": "POST",
+            "path": "/api/v1/auth/register",
+            "description": "Registers a new user.",
             "auth_required": false,
-            "related_module": "Product Catalog Service"
-        },
-        {
-            "method": "GET",
-            "path": "/products/{id}",
-            "description": "Retrieve details for a specific product.",
-            "auth_required": false,
-            "related_module": "Product Catalog Service"
+            "related_module": "Authentication & User Management"
         },
         {
             "method": "POST",
-            "path": "/cart/add",
-            "description": "Add a product to the current user's shopping cart.",
+            "path": "/api/v1/auth/login",
+            "description": "Authenticates a user and returns an access token.",
             "auth_required": false,
-            "related_module": "Shopping Cart Service"
+            "related_module": "Authentication & User Management"
         },
         {
             "method": "GET",
-            "path": "/cart",
-            "description": "Retrieve the current user's shopping cart contents.",
-            "auth_required": false,
-            "related_module": "Shopping Cart Service"
+            "path": "/api/v1/trends",
+            "description": "Retrieves a list of currently identified trending topics.",
+            "auth_required": true,
+            "related_module": "Trend Analysis Service"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/trends/discover",
+            "description": "Triggers a new run of the trend discovery process (admin/scheduled).",
+            "auth_required": true,
+            "related_module": "Trend Analysis Service"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/posts/generate",
+            "description": "Generates a new post draft based on a specified trending topic ID.",
+            "auth_required": true,
+            "related_module": "Content Generation Service"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/posts",
+            "description": "Retrieves all generated post drafts for the authenticated user.",
+            "auth_required": true,
+            "related_module": "Post Management Service"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/posts/{id}",
+            "description": "Retrieves a specific generated post draft by ID.",
+            "auth_required": true,
+            "related_module": "Post Management Service"
         },
         {
             "method": "PUT",
-            "path": "/cart/update/{item_id}",
-            "description": "Update the quantity of an item in the shopping cart.",
-            "auth_required": false,
-            "related_module": "Shopping Cart Service"
+            "path": "/api/v1/posts/{id}",
+            "description": "Updates an existing generated post draft (e.g., title, body, status).",
+            "auth_required": true,
+            "related_module": "Post Management Service"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/subreddits/monitored",
+            "description": "Retrieves the list of subreddits monitored by the user.",
+            "auth_required": true,
+            "related_module": "Reddit Integration Service"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/subreddits/monitored",
+            "description": "Adds a new subreddit to the user's monitored list.",
+            "auth_required": true,
+            "related_module": "Reddit Integration Service"
         },
         {
             "method": "DELETE",
-            "path": "/cart/remove/{item_id}",
-            "description": "Remove an item from the shopping cart.",
-            "auth_required": false,
-            "related_module": "Shopping Cart Service"
+            "path": "/api/v1/subreddits/monitored/{name}",
+            "description": "Removes a subreddit from the user's monitored list.",
+            "auth_required": true,
+            "related_module": "Reddit Integration Service"
         }
     ],
     "functional_requirements": [
-        "The system shall display a list of all available products.",
-        "The system shall allow users to view detailed information for each product, including name, description, price, and images.",
-        "The system shall allow users to add a specified quantity of a product to their shopping cart.",
-        "The system shall display the current contents of the user's shopping cart, including product name, quantity, and individual item price.",
-        "The system shall allow users to update the quantity of an item already in the shopping cart.",
-        "The system shall allow users to remove an item from the shopping cart.",
-        "The system shall provide a visual indicator (e.g., cart icon with item count) of the number of items in the cart."
+        "The system shall allow users to register and log in securely.",
+        "The system shall connect to the Reddit API using appropriate credentials and adhere to rate limits.",
+        "The system shall fetch posts from specified subreddits at regular intervals.",
+        "The system shall implement an algorithm to determine 'trending' posts based on upvotes, comments, and recency.",
+        "The system shall use natural language processing (NLP) to extract key topics and keywords from trending posts.",
+        "The system shall leverage a Large Language Model (LLM) to generate coherent and contextually relevant post titles and bodies.",
+        "The system shall store generated post drafts, allowing users to retrieve and review them.",
+        "The system shall provide a user-friendly web interface to display trending topics and generated posts.",
+        "The system shall allow users to copy generated post content to their clipboard.",
+        "The system shall allow users to configure which subreddits to monitor for trends (post-MVP)."
     ],
     "non_functional_requirements": [
         {
             "category": "Performance",
-            "description": "Product listing and detail pages should load within 3 seconds under normal network conditions.",
-            "target_metric": "Page Load Time < 3s"
+            "description": "Trending topic discovery should complete within 15 minutes for configured subreddits.",
+            "target_metric": "Trend discovery latency < 15 minutes"
         },
         {
-            "category": "Usability",
-            "description": "The user interface for browsing products and managing the cart should be intuitive and easy to navigate.",
-            "target_metric": "System Usability Scale (SUS) score > 70"
+            "category": "Performance",
+            "description": "AI post generation should complete within 10 seconds per request.",
+            "target_metric": "Post generation latency < 10 seconds"
         },
         {
             "category": "Scalability",
-            "description": "The system should be able to handle an increasing number of products and concurrent users without significant performance degradation.",
-            "target_metric": "Supports 1000 concurrent users with < 5s response time"
+            "description": "The system must be able to handle fetching and processing data from up to 100 subreddits concurrently.",
+            "target_metric": "Support 100 concurrent subreddit monitors"
+        },
+        {
+            "category": "Scalability",
+            "description": "The system should support up to 10,000 daily active users generating posts.",
+            "target_metric": "10,000 DAU"
         },
         {
             "category": "Reliability",
-            "description": "The website should be available and functional 99.9% of the time.",
-            "target_metric": "99.9% Uptime"
+            "description": "The Reddit API integration should have an uptime of 99.9%.",
+            "target_metric": "99.9% uptime for Reddit integration"
         },
         {
             "category": "Security",
-            "description": "User session data (e.g., cart contents) should be protected from unauthorized access.",
-            "target_metric": "No critical security vulnerabilities identified in penetration tests"
+            "description": "All user authentication and API keys must be stored and transmitted securely (e.g., HTTPS, encryption at rest).",
+            "target_metric": "Adherence to OWASP Top 10"
+        },
+        {
+            "category": "Usability",
+            "description": "The user interface should be intuitive and easy to navigate for content creators.",
+            "target_metric": "System Usability Scale (SUS) score > 75"
+        },
+        {
+            "category": "Cost Efficiency",
+            "description": "Optimize LLM API calls to minimize operational costs.",
+            "target_metric": "LLM API cost per generated post < $0.05"
         }
     ],
     "constraints": [
-        "Initial development will focus solely on product browsing and cart management; checkout and payment processing are out of scope for the MVP.",
-        "No user authentication or account management will be implemented in the initial phase; cart contents will be session-based.",
-        "Product data will be static or managed via a simple backend interface, not a full CMS."
+        "Reliance on Reddit API terms of service, rate limits, and data availability.",
+        "Cost implications of using external Large Language Model (LLM) APIs.",
+        "Accuracy and quality of AI-generated content are subject to LLM capabilities.",
+        "The system must comply with all relevant data privacy regulations (e.g., GDPR, CCPA) for user data."
     ],
     "assumptions": [
-        "A source of product data (names, descriptions, prices, images, stock) will be provided.",
-        "Users will have a modern web browser and a stable internet connection.",
-        "The primary goal is to validate the core user journey of product discovery and cart population.",
-        "Session management for anonymous carts will be sufficient for the initial phase."
+        "Reddit API will remain stable and accessible for data fetching.",
+        "Large Language Models (LLMs) are capable of generating high-quality, relevant, and engaging post content.",
+        "Users have a basic understanding of Reddit and content creation principles.",
+        "The definition of 'trending' can be adequately captured by quantifiable metrics from Reddit data.",
+        "Users will manually publish the generated posts to Reddit or other platforms."
     ],
     "open_questions": [
-        "What is the expected volume of products in the catalog?",
-        "Are there any specific design guidelines or branding requirements?",
-        "How will product images be hosted and managed?",
-        "What is the desired behavior for out-of-stock items?"
+        "What is the precise algorithm or criteria for defining a 'trending' post (e.g., specific upvote thresholds, time windows, subreddit filters)?",
+        "What is the desired tone and style for the AI-generated posts (e.g., humorous, informative, formal, casual)?",
+        "Should the system support monitoring specific user-defined subreddits from MVP, or is a global set sufficient initially?",
+        "What is the maximum acceptable latency for fetching and processing Reddit data?",
+        "What is the budget allocation for LLM API usage?",
+        "Are there any specific content guidelines or censorship requirements for generated posts?"
     ],
     "out_of_scope": [
-        "User authentication and profiles",
-        "Order placement and payment processing",
-        "Shipping and fulfillment management",
-        "Product search and filtering capabilities",
-        "Admin panel for product management",
-        "Customer support features",
-        "Reviews and ratings"
+        "Direct publishing of posts to Reddit or any other social media platform.",
+        "Advanced analytics on the performance of published posts (e.g., tracking upvotes, comments after publishing).",
+        "Integration with multiple social media platforms beyond Reddit.",
+        "User-specific customization of AI generation parameters (e.g., specific persona, writing style, length control beyond basic prompts).",
+        "Scheduling of posts for future publication.",
+        "Image or video generation for posts."
     ],
     "complexity_estimate": "medium"
 }
