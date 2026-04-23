@@ -10,7 +10,7 @@ FONT_REGULAR = os.path.join(FONTS_DIR, "DejaVuSans.ttf")
 FONT_BOLD    = os.path.join(FONTS_DIR, "DejaVuSans-Bold.ttf")
 
 
-def save_to_pdf(text: str, filename: str, folder: str = "memory") -> str:
+def save_to_pdf(text: str, filename: str, folder: str ) -> str:
 
     os.makedirs(folder, exist_ok=True)
     filepath = os.path.join(folder, filename)

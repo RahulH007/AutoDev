@@ -1,279 +1,310 @@
 {
-    "product_name": "AI Reddit Trend & Post Generator",
-    "product_summary": "An AI-powered agent designed to automatically identify trending topics on Reddit, extract key insights, and generate relevant, engaging post drafts for users to review and publish.",
-    "problem_statement": "Content creators and marketers often struggle to keep up with rapidly changing trends on Reddit, leading to missed opportunities for timely and relevant content creation. Manually sifting through Reddit for trending topics and then crafting posts is time-consuming and inefficient.",
+    "product_name": "LinkedIn Engagement AI",
+    "product_summary": "An AI-powered platform designed to help users identify high-performing LinkedIn content, analyze its engagement drivers, and generate new, optimized posts that mimic successful trends for increased reach and interaction.",
+    "problem_statement": "Content creators and marketers on LinkedIn struggle to consistently produce highly engaging posts due to the dynamic nature of trends, the difficulty in manually analyzing successful content, and the time-consuming process of crafting new, optimized posts. This leads to suboptimal content performance and missed opportunities for audience growth.",
     "target_users": [
         "Social Media Managers",
-        "Content Creators",
-        "Digital Marketers",
-        "Reddit Power Users",
-        "Community Managers"
+        "Content Marketers",
+        "Individual Professionals (e.g., thought leaders, job seekers)",
+        "Agencies managing multiple client LinkedIn profiles"
     ],
     "success_metrics": [
-        "Increase in the number of trending topics identified per day by 20%",
-        "Reduction in time spent by users on trend research by 30%",
-        "Average user satisfaction score of 4/5 for generated post quality",
-        "Number of generated posts reviewed and accepted by users per week"
+        "Average engagement rate (likes, comments, shares per impression) of AI-generated posts compared to user-generated baseline.",
+        "Number of trending posts identified per day/week.",
+        "User satisfaction with generated post quality (e.g., via feedback mechanism).",
+        "Reduction in time spent by users on content research and creation.",
+        "Number of active users and generated posts."
     ],
     "features": [
         {
-            "name": "Reddit Trending Post Discovery",
-            "description": "Automatically connect to the Reddit API to fetch posts from specified subreddits and identify those that are currently trending based on configurable metrics (e.g., upvotes, comments, recency).",
+            "name": "Trending Post Discovery",
+            "description": "Allows users to discover LinkedIn posts that are currently gaining significant traction based on predefined or user-adjustable criteria.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "The system can successfully connect to the Reddit API.",
-                "The system can fetch posts from a configurable list of subreddits.",
-                "The system can identify and list posts as 'trending' based on a defined algorithm (e.g., top 100 posts by upvotes in the last 24 hours).",
-                "Trending posts include title, URL, subreddit, upvotes, and comment count."
+                "System displays a list of trending posts.",
+                "Users can filter trending posts by keywords, hashtags, or broad topics.",
+                "Trending posts are updated at least hourly.",
+                "Each trending post entry includes basic information (author, snippet, link, primary engagement metrics)."
             ]
         },
         {
-            "name": "Trending Topic Extraction",
-            "description": "From the identified trending posts, use AI to extract overarching themes, keywords, and key discussion points that represent the core trending topics.",
+            "name": "Detailed Engagement Analysis",
+            "description": "Provides a breakdown of engagement metrics for a selected trending post, potentially highlighting factors contributing to its success.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "The system can process a set of trending posts and identify distinct topics.",
-                "Each identified topic includes a concise name and relevant keywords.",
-                "The system can associate multiple trending posts with a single extracted topic.",
-                "Topic extraction accuracy is at least 80% as judged by human review."
+                "Upon selecting a post, the system displays total likes, comments, shares, and potentially views.",
+                "System provides a simple summary of why the post is trending (e.g., 'high comment velocity').",
+                "Users can view the full content of the selected post."
             ]
         },
         {
-            "name": "AI Post Generation (Draft)",
-            "description": "Generate a new Reddit-style post (title and body) based on a selected trending topic. The generated post should be relevant, engaging, and adhere to a specified tone.",
+            "name": "AI-Powered Post Generation",
+            "description": "Generates a new LinkedIn post that is 'similar' in style, topic, or theme to a selected high-engagement post, but optimized for maximum engagement.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "Given a trending topic, the system can generate a unique post title.",
-                "Given a trending topic, the system can generate a post body (text content).",
-                "Generated posts are grammatically correct and coherent.",
-                "Generated posts are relevant to the selected trending topic.",
-                "Users can view the generated post draft within the application."
+                "Users can select a trending post and initiate generation of a new post.",
+                "The generated post is relevant to the original post's topic/theme.",
+                "The generated post incorporates elements identified as high-engagement drivers (e.g., questions, calls to action, specific formatting).",
+                "Users can copy the generated post text.",
+                "Generated posts are grammatically correct and coherent."
             ]
         },
         {
-            "name": "User Interface for Trend & Post Management",
-            "description": "A web-based interface allowing users to view trending topics, trigger post generation, and review/edit generated post drafts.",
+            "name": "User Authentication & Profile Management",
+            "description": "Secure user login, registration, and basic profile management.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "Users can log in and access the application.",
-                "The UI displays a list of currently trending topics.",
-                "Users can select a trending topic and initiate post generation.",
-                "The UI displays generated post drafts for review.",
-                "Users can copy the generated post content to their clipboard."
+                "Users can register and log in securely.",
+                "Users can manage their basic profile information (e.g., email, password)."
             ]
         },
         {
-            "name": "Configurable Subreddit Monitoring",
-            "description": "Allow users to specify which subreddits the agent should monitor for trending posts.",
+            "name": "Search & Filter Enhancements",
+            "description": "Advanced filtering options for trending posts (e.g., by industry, company size, specific influencers, post type).",
             "priority": "medium",
             "is_mvp": false,
             "acceptance_criteria": [
-                "Users can add new subreddits to a monitoring list.",
-                "Users can remove subreddits from the monitoring list.",
-                "The system only fetches posts from the configured subreddits."
+                "Users can apply multiple filters simultaneously.",
+                "Search results are refined based on applied filters."
             ]
         },
         {
-            "name": "Post Editing & Refinement",
-            "description": "Provide tools within the UI to edit and refine generated post drafts before copying them.",
+            "name": "Engagement Driver Insights",
+            "description": "More sophisticated analysis identifying specific keywords, sentiment, content structure, or media types that contribute to high engagement.",
             "priority": "medium",
             "is_mvp": false,
             "acceptance_criteria": [
-                "Users can modify the title and body of a generated post draft.",
-                "Changes made by the user are saved to the draft."
+                "System provides a list of 'engagement drivers' (e.g., 'use of emojis', 'asking questions', 'personal story').",
+                "Insights are actionable and explainable."
+            ]
+        },
+        {
+            "name": "Post Generation Customization",
+            "description": "Allows users to provide additional prompts or modify parameters for the AI during post generation (e.g., tone, length, specific keywords to include/exclude).",
+            "priority": "medium",
+            "is_mvp": false,
+            "acceptance_criteria": [
+                "Users can input specific keywords or phrases for the AI to incorporate.",
+                "Users can select a desired tone (e.g., professional, casual, inspiring).",
+                "Users can specify desired post length."
             ]
         }
     ],
     "user_flows": [
         {
-            "name": "Discover Trending Topics",
-            "actor": "Content Creator",
+            "name": "Discover Trending Posts",
+            "actor": "User",
             "steps": [
-                "Content Creator logs into the AI Reddit Trend & Post Generator.",
-                "System automatically displays a dashboard with the latest trending topics.",
-                "Content Creator reviews the list of trending topics, including associated keywords and example posts."
+                "User logs into the platform.",
+                "System displays a dashboard with currently trending LinkedIn posts.",
+                "User can optionally apply filters (e.g., keywords, topics).",
+                "User reviews the list of trending posts."
             ],
             "related_features": [
-                "Reddit Trending Post Discovery",
-                "Trending Topic Extraction",
-                "User Interface for Trend & Post Management"
+                "Trending Post Discovery",
+                "User Authentication & Profile Management",
+                "Search & Filter Enhancements"
             ]
         },
         {
-            "name": "Generate a New Post Draft",
-            "actor": "Content Creator",
+            "name": "Analyze a Specific Trending Post",
+            "actor": "User",
             "steps": [
-                "Content Creator views the list of trending topics.",
-                "Content Creator selects a specific trending topic of interest.",
-                "Content Creator clicks 'Generate Post' button.",
-                "System sends a request to the AI Post Generation module.",
-                "System displays the AI-generated post draft (title and body) in the UI.",
-                "Content Creator reviews the generated post."
+                "User is viewing the list of trending posts.",
+                "User clicks on a specific post to view details.",
+                "System displays the full post content and its detailed engagement metrics.",
+                "System provides a summary of engagement drivers (MVP: basic; Post-MVP: advanced)."
             ],
             "related_features": [
-                "Trending Topic Extraction",
-                "AI Post Generation (Draft)",
-                "User Interface for Trend & Post Management"
+                "Trending Post Discovery",
+                "Detailed Engagement Analysis",
+                "Engagement Driver Insights"
+            ]
+        },
+        {
+            "name": "Generate a New High-Engagement Post",
+            "actor": "User",
+            "steps": [
+                "User is viewing the detailed analysis of a trending post.",
+                "User clicks 'Generate Similar Post'.",
+                "(Post-MVP: User can provide additional prompts or customization).",
+                "System processes the request and generates a new post.",
+                "System displays the generated post.",
+                "User can copy the generated post text."
+            ],
+            "related_features": [
+                "Detailed Engagement Analysis",
+                "AI-Powered Post Generation",
+                "Post Generation Customization"
             ]
         }
     ],
     "modules": [
         {
-            "name": "Authentication & User Management",
-            "responsibility": "Handles user registration, login, session management, and user profile data.",
+            "name": "User Management Service",
+            "responsibility": "Handles user registration, authentication, authorization, and profile management.",
             "exposes": [
-                "POST /register",
-                "POST /login",
-                "GET /me"
-            ],
-            "depends_on": []
-        },
-        {
-            "name": "Reddit Integration Service",
-            "responsibility": "Manages all interactions with the Reddit API, including fetching posts, subreddits, and handling rate limits.",
-            "exposes": [
-                "GET /reddit/posts/trending",
-                "GET /reddit/subreddits/{name}/posts"
-            ],
-            "depends_on": []
-        },
-        {
-            "name": "Trend Analysis Service",
-            "responsibility": "Processes raw Reddit post data to identify trending topics, extract keywords, and categorize content.",
-            "exposes": [
-                "POST /trends/analyze",
-                "GET /trends"
+                "login()",
+                "register()",
+                "getUserProfile()",
+                "updateUserProfile()"
             ],
             "depends_on": [
-                "Reddit Integration Service"
+                "Data Storage"
             ]
         },
         {
-            "name": "Content Generation Service",
-            "responsibility": "Utilizes Large Language Models (LLMs) to generate post titles and bodies based on identified trending topics.",
+            "name": "LinkedIn Data Ingestion Service",
+            "responsibility": "Connects to LinkedIn (via API or controlled scraping), fetches raw post data, and stores it. Handles rate limits and data freshness.",
             "exposes": [
-                "POST /content/generate"
+                "fetchTrendingPosts(criteria)",
+                "fetchPostDetails(postId)"
             ],
             "depends_on": [
-                "Trend Analysis Service"
+                "Data Storage"
             ]
         },
         {
-            "name": "Post Management Service",
-            "responsibility": "Stores, retrieves, and manages generated post drafts, allowing for review and editing.",
+            "name": "Trending Algorithm Service",
+            "responsibility": "Processes raw LinkedIn post data to identify and rank 'trending' posts based on various metrics (e.g., engagement velocity, total engagement, recency).",
             "exposes": [
-                "GET /posts/{id}",
-                "GET /posts",
-                "PUT /posts/{id}",
-                "DELETE /posts/{id}"
+                "getTrendingPosts(filters)"
             ],
             "depends_on": [
+                "LinkedIn Data Ingestion Service",
+                "Data Storage"
+            ]
+        },
+        {
+            "name": "Engagement Analysis Service",
+            "responsibility": "Extracts and quantifies engagement metrics from posts. Analyzes content to identify potential drivers of engagement (e.g., keywords, sentiment, structure).",
+            "exposes": [
+                "analyzePostEngagement(postId)",
+                "getEngagementDrivers(postId)"
+            ],
+            "depends_on": [
+                "LinkedIn Data Ingestion Service",
+                "Data Storage"
+            ]
+        },
+        {
+            "name": "Content Generation Service (AI Core)",
+            "responsibility": "Utilizes an AI model (e.g., LLM) to generate new post content based on input from the Engagement Analysis Service and user preferences.",
+            "exposes": [
+                "generatePost(sourcePostId, generationParams)"
+            ],
+            "depends_on": [
+                "Engagement Analysis Service",
+                "Data Storage"
+            ]
+        },
+        {
+            "name": "API Gateway / Frontend Service",
+            "responsibility": "Acts as the primary interface for the frontend application. Orchestrates calls to backend services, handles request/response formatting, and potentially caching.",
+            "exposes": [
+                "All user-facing APIs"
+            ],
+            "depends_on": [
+                "User Management Service",
+                "Trending Algorithm Service",
+                "Engagement Analysis Service",
                 "Content Generation Service"
-            ]
-        },
-        {
-            "name": "User Interface (Frontend)",
-            "responsibility": "Provides the web-based graphical interface for users to interact with the system.",
-            "exposes": [],
-            "depends_on": [
-                "Authentication & User Management",
-                "Trend Analysis Service",
-                "Post Management Service"
             ]
         }
     ],
     "suggested_tech_stack": [
-        "Python (Backend logic, AI/ML)",
-        "FastAPI (Backend API framework)",
-        "PostgreSQL (Primary data store)",
-        "Redis (Caching, task queues)",
-        "React/Vue.js (Frontend framework)",
-        "OpenAI API / Hugging Face Transformers (LLM for content generation)",
-        "PRAW (Python Reddit API Wrapper)"
+        "Backend: Python (Flask/FastAPI) for AI/ML, Node.js/Java for other microservices",
+        "Database: PostgreSQL (relational), potentially MongoDB (NoSQL for raw data)",
+        "AI/ML: Hugging Face Transformers, OpenAI API (or similar LLM provider), Scikit-learn, PyTorch/TensorFlow",
+        "Frontend: React/Vue.js",
+        "Cloud Platform: AWS/GCP/Azure",
+        "Containerization: Docker, Kubernetes"
     ],
-    "expected_scale": "Initial launch: 100-500 daily active users, processing ~50,000 Reddit posts daily. Within 1 year: 5,000-10,000 daily active users, processing ~500,000 Reddit posts daily.",
+    "expected_scale": "Initial Launch: 1,000 daily active users (DAU), 10,000 trending posts processed daily, 500 generated posts daily. Year 1: 10,000 DAU, 100,000 trending posts processed daily, 5,000 generated posts daily. Peak Load: Ability to handle bursts of 2-3x average load for short periods.",
     "data_entities": [
         {
             "name": "User",
-            "description": "Represents a user of the AI Reddit Trend & Post Generator.",
+            "description": "Stores information about registered users of the platform.",
             "key_attributes": [
                 "user_id (PK)",
-                "username",
-                "email",
+                "email (unique)",
                 "password_hash",
-                "created_at"
+                "salt",
+                "created_at",
+                "last_login"
             ],
             "relationships": [
-                "One-to-Many with GeneratedPost (a user can generate many posts)"
+                "One-to-many with SearchQuery",
+                "One-to-many with GeneratedPost"
             ]
         },
         {
-            "name": "RedditPost",
-            "description": "Stores raw data of a Reddit post fetched from the Reddit API.",
+            "name": "LinkedInPost",
+            "description": "Stores raw and processed data for LinkedIn posts identified as trending or analyzed.",
             "key_attributes": [
-                "reddit_post_id (PK)",
-                "title",
-                "url",
-                "subreddit_name",
-                "author",
-                "upvotes",
-                "comments_count",
-                "created_utc",
+                "post_id (PK)",
+                "linkedin_url (unique)",
+                "author_id",
+                "author_name",
+                "post_text",
+                "post_media_url (optional)",
+                "posted_at",
+                "fetched_at",
+                "raw_data (JSONB)"
+            ],
+            "relationships": [
+                "One-to-many with EngagementMetric"
+            ]
+        },
+        {
+            "name": "EngagementMetric",
+            "description": "Stores historical and current engagement metrics for a specific LinkedIn post.",
+            "key_attributes": [
+                "metric_id (PK)",
+                "post_id (FK)",
+                "likes",
+                "comments",
+                "shares",
+                "views (optional)",
                 "fetched_at"
             ],
             "relationships": [
-                "Many-to-Many with TrendingTopic (a RedditPost can contribute to multiple topics, a topic can be derived from many posts)"
-            ]
-        },
-        {
-            "name": "TrendingTopic",
-            "description": "Represents an identified trending theme or topic derived from multiple Reddit posts.",
-            "key_attributes": [
-                "topic_id (PK)",
-                "name",
-                "keywords (array of strings)",
-                "trend_score",
-                "discovered_at",
-                "last_updated_at"
-            ],
-            "relationships": [
-                "Many-to-Many with RedditPost",
-                "One-to-Many with GeneratedPost (a topic can inspire many generated posts)"
+                "Many-to-one with LinkedInPost"
             ]
         },
         {
             "name": "GeneratedPost",
-            "description": "Stores the AI-generated post content (drafts).",
+            "description": "Stores the content of posts generated by the AI for users.",
             "key_attributes": [
                 "generated_post_id (PK)",
                 "user_id (FK)",
-                "topic_id (FK)",
-                "title",
-                "body",
-                "generated_at",
-                "last_edited_at",
-                "status (e.g., 'draft', 'published', 'discarded')"
+                "source_post_id (FK, optional)",
+                "generated_text",
+                "created_at",
+                "status (e.g., 'draft', 'copied')"
             ],
             "relationships": [
-                "Many-to-One with User",
-                "Many-to-One with TrendingTopic"
+                "Many-to-one with User",
+                "Many-to-one with LinkedInPost"
             ]
         },
         {
-            "name": "MonitoredSubreddit",
-            "description": "A list of subreddits configured by the user to be monitored for trends.",
+            "name": "SearchQuery",
+            "description": "Stores user-defined search criteria for trending posts.",
             "key_attributes": [
-                "subreddit_id (PK)",
+                "query_id (PK)",
                 "user_id (FK)",
-                "subreddit_name",
-                "added_at"
+                "keywords",
+                "hashtags",
+                "filters (JSONB)",
+                "created_at"
             ],
             "relationships": [
-                "Many-to-One with User"
+                "Many-to-one with User"
             ]
         }
     ],
@@ -283,161 +314,122 @@
             "path": "/api/v1/auth/register",
             "description": "Registers a new user.",
             "auth_required": false,
-            "related_module": "Authentication & User Management"
+            "related_module": "User Management Service"
         },
         {
             "method": "POST",
             "path": "/api/v1/auth/login",
             "description": "Authenticates a user and returns an access token.",
             "auth_required": false,
-            "related_module": "Authentication & User Management"
+            "related_module": "User Management Service"
         },
         {
             "method": "GET",
-            "path": "/api/v1/trends",
-            "description": "Retrieves a list of currently identified trending topics.",
+            "path": "/api/v1/users/me",
+            "description": "Retrieves the authenticated user's profile.",
             "auth_required": true,
-            "related_module": "Trend Analysis Service"
+            "related_module": "User Management Service"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/trending-posts",
+            "description": "Retrieves a list of currently trending LinkedIn posts. Supports optional query parameters for filtering (e.g., ?keywords=AI&limit=10).",
+            "auth_required": true,
+            "related_module": "Trending Algorithm Service"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/posts/{post_id}",
+            "description": "Retrieves detailed information and engagement metrics for a specific LinkedIn post.",
+            "auth_required": true,
+            "related_module": "Engagement Analysis Service"
         },
         {
             "method": "POST",
-            "path": "/api/v1/trends/discover",
-            "description": "Triggers a new run of the trend discovery process (admin/scheduled).",
-            "auth_required": true,
-            "related_module": "Trend Analysis Service"
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/posts/generate",
-            "description": "Generates a new post draft based on a specified trending topic ID.",
+            "path": "/api/v1/posts/{post_id}/generate-similar",
+            "description": "Generates a new LinkedIn post similar to the specified post_id, optimized for engagement.",
             "auth_required": true,
             "related_module": "Content Generation Service"
         },
         {
             "method": "GET",
-            "path": "/api/v1/posts",
-            "description": "Retrieves all generated post drafts for the authenticated user.",
+            "path": "/api/v1/generated-posts",
+            "description": "Retrieves a list of posts previously generated by the AI for the authenticated user.",
             "auth_required": true,
-            "related_module": "Post Management Service"
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/posts/{id}",
-            "description": "Retrieves a specific generated post draft by ID.",
-            "auth_required": true,
-            "related_module": "Post Management Service"
-        },
-        {
-            "method": "PUT",
-            "path": "/api/v1/posts/{id}",
-            "description": "Updates an existing generated post draft (e.g., title, body, status).",
-            "auth_required": true,
-            "related_module": "Post Management Service"
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/subreddits/monitored",
-            "description": "Retrieves the list of subreddits monitored by the user.",
-            "auth_required": true,
-            "related_module": "Reddit Integration Service"
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/subreddits/monitored",
-            "description": "Adds a new subreddit to the user's monitored list.",
-            "auth_required": true,
-            "related_module": "Reddit Integration Service"
-        },
-        {
-            "method": "DELETE",
-            "path": "/api/v1/subreddits/monitored/{name}",
-            "description": "Removes a subreddit from the user's monitored list.",
-            "auth_required": true,
-            "related_module": "Reddit Integration Service"
+            "related_module": "Content Generation Service"
         }
     ],
     "functional_requirements": [
-        "The system shall allow users to register and log in securely.",
-        "The system shall connect to the Reddit API using appropriate credentials and adhere to rate limits.",
-        "The system shall fetch posts from specified subreddits at regular intervals.",
-        "The system shall implement an algorithm to determine 'trending' posts based on upvotes, comments, and recency.",
-        "The system shall use natural language processing (NLP) to extract key topics and keywords from trending posts.",
-        "The system shall leverage a Large Language Model (LLM) to generate coherent and contextually relevant post titles and bodies.",
-        "The system shall store generated post drafts, allowing users to retrieve and review them.",
-        "The system shall provide a user-friendly web interface to display trending topics and generated posts.",
-        "The system shall allow users to copy generated post content to their clipboard.",
-        "The system shall allow users to configure which subreddits to monitor for trends (post-MVP)."
+        "FR1: The system shall allow users to register and log in securely.",
+        "FR2: The system shall display a dashboard of trending LinkedIn posts.",
+        "FR3: The system shall allow users to filter trending posts by keywords and hashtags.",
+        "FR4: The system shall provide detailed engagement metrics (likes, comments, shares, views) for any selected trending post.",
+        "FR5: The system shall generate a new LinkedIn post based on a selected trending post, maintaining thematic similarity while optimizing for engagement.",
+        "FR6: The generated post shall be presented to the user for review and copying.",
+        "FR7: The system shall store generated posts for user's historical reference.",
+        "FR8: The system shall ensure data displayed for trending posts is fresh, updated at least hourly."
     ],
     "non_functional_requirements": [
         {
             "category": "Performance",
-            "description": "Trending topic discovery should complete within 15 minutes for configured subreddits.",
-            "target_metric": "Trend discovery latency < 15 minutes"
-        },
-        {
-            "category": "Performance",
-            "description": "AI post generation should complete within 10 seconds per request.",
-            "target_metric": "Post generation latency < 10 seconds"
+            "description": "Trending post discovery should be fast. Post generation should be responsive.",
+            "target_metric": "Trending posts list loads within 3 seconds. Post detail view loads within 2 seconds. Post generation completes within 10 seconds."
         },
         {
             "category": "Scalability",
-            "description": "The system must be able to handle fetching and processing data from up to 100 subreddits concurrently.",
-            "target_metric": "Support 100 concurrent subreddit monitors"
-        },
-        {
-            "category": "Scalability",
-            "description": "The system should support up to 10,000 daily active users generating posts.",
-            "target_metric": "10,000 DAU"
+            "description": "The system must be able to handle an increasing number of users and data volume without significant performance degradation.",
+            "target_metric": "Support 10,000 DAU and process 100,000 posts daily."
         },
         {
             "category": "Reliability",
-            "description": "The Reddit API integration should have an uptime of 99.9%.",
-            "target_metric": "99.9% uptime for Reddit integration"
+            "description": "The system should be highly available and resilient to failures.",
+            "target_metric": "99.9% uptime."
         },
         {
             "category": "Security",
-            "description": "All user authentication and API keys must be stored and transmitted securely (e.g., HTTPS, encryption at rest).",
-            "target_metric": "Adherence to OWASP Top 10"
+            "description": "User data and access to LinkedIn data must be protected.",
+            "target_metric": "Adherence to industry best practices for authentication, authorization, and data encryption (at rest and in transit)."
         },
         {
-            "category": "Usability",
-            "description": "The user interface should be intuitive and easy to navigate for content creators.",
-            "target_metric": "System Usability Scale (SUS) score > 75"
+            "category": "Data Freshness",
+            "description": "Information about trending posts must be current.",
+            "target_metric": "Trending post data updated hourly."
         },
         {
-            "category": "Cost Efficiency",
-            "description": "Optimize LLM API calls to minimize operational costs.",
-            "target_metric": "LLM API cost per generated post < $0.05"
+            "category": "Maintainability",
+            "description": "The codebase should be modular, well-documented, and easy to update and extend.",
+            "target_metric": "Low technical debt, clear module boundaries."
         }
     ],
     "constraints": [
-        "Reliance on Reddit API terms of service, rate limits, and data availability.",
-        "Cost implications of using external Large Language Model (LLM) APIs.",
-        "Accuracy and quality of AI-generated content are subject to LLM capabilities.",
-        "The system must comply with all relevant data privacy regulations (e.g., GDPR, CCPA) for user data."
+        "Reliance on LinkedIn's API terms of service and rate limits (if using API).",
+        "Legal and ethical considerations regarding data scraping if API access is insufficient or restricted.",
+        "Computational cost associated with running and fine-tuning large language models for content generation.",
+        "The quality of generated content is dependent on the underlying AI model's capabilities and training data.",
+        "The system must comply with data privacy regulations (e.g., GDPR, CCPA) for user data."
     ],
     "assumptions": [
-        "Reddit API will remain stable and accessible for data fetching.",
-        "Large Language Models (LLMs) are capable of generating high-quality, relevant, and engaging post content.",
-        "Users have a basic understanding of Reddit and content creation principles.",
-        "The definition of 'trending' can be adequately captured by quantifiable metrics from Reddit data.",
-        "Users will manually publish the generated posts to Reddit or other platforms."
+        "We can obtain sufficient access to LinkedIn post data (either via official API or legally permissible and technically feasible scraping).",
+        "'Trending' can be effectively defined and identified algorithmically based on available engagement metrics.",
+        "AI models (LLMs) are capable of generating coherent, relevant, and engaging LinkedIn post content based on provided examples and optimization goals.",
+        "Users will have a basic understanding of how to use an AI content generation tool.",
+        "The system will primarily focus on text-based posts, with potential future expansion to include image/video analysis."
     ],
     "open_questions": [
-        "What is the precise algorithm or criteria for defining a 'trending' post (e.g., specific upvote thresholds, time windows, subreddit filters)?",
-        "What is the desired tone and style for the AI-generated posts (e.g., humorous, informative, formal, casual)?",
-        "Should the system support monitoring specific user-defined subreddits from MVP, or is a global set sufficient initially?",
-        "What is the maximum acceptable latency for fetching and processing Reddit data?",
-        "What is the budget allocation for LLM API usage?",
-        "Are there any specific content guidelines or censorship requirements for generated posts?"
+        "What is the exact definition and calculation for 'trending' posts? (e.g., engagement velocity, absolute numbers, specific time windows, specific types of engagement).",
+        "What are the specific legal and technical implications of accessing LinkedIn data? Will an official API be sufficient, or will scraping be necessary, and if so, how will legal compliance be ensured?",
+        "What level of customization will be offered for AI-generated posts in the MVP vs. future iterations?",
+        "How will the system handle different languages for trending post discovery and generation? (MVP will likely be English-only).",
+        "What are the specific performance targets for the AI content generation (e.g., latency, cost per generation)?",
+        "How will the system measure the 'similarity' between a generated post and a source post?",
+        "Will the system need to detect and filter out spam or low-quality trending posts?"
     ],
     "out_of_scope": [
-        "Direct publishing of posts to Reddit or any other social media platform.",
-        "Advanced analytics on the performance of published posts (e.g., tracking upvotes, comments after publishing).",
-        "Integration with multiple social media platforms beyond Reddit.",
-        "User-specific customization of AI generation parameters (e.g., specific persona, writing style, length control beyond basic prompts).",
-        "Scheduling of posts for future publication.",
-        "Image or video generation for posts."
+        "Direct integration for posting content to LinkedIn from the platform.",
+        "Advanced analytics dashboards for user's own LinkedIn performance.",
+        "Support for multiple social media platforms beyond LinkedIn.",
+        "Real-time notifications for trending posts.",
+        "User-defined AI model fine-tuning."
     ],
-    "complexity_estimate": "medium"
+    "complexity_estimate": "high"
 }

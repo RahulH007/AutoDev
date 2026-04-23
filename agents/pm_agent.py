@@ -27,3 +27,7 @@ def pm_agent(state: MultiAgent):
     # save PDF
     save_to_pdf(pdf_response, "product_manager.pdf", folder="memory") 
 
+    return {
+        "prd": prd_dict,
+    }
+

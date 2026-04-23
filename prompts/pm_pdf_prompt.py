@@ -49,14 +49,19 @@ Tone & Style:
 {json_str}
 </structured_analysis>
 
+Use the structured analysis as the primary source of truth for:
+- product name
+- features
+- target users
+- success metrics
+- requirements
 ---
 
 Write a concise, client-friendly PRD using the structure below. Every section should be short and to the point. No placeholders, no TBDs, no unnecessary detail.
 
 ---
 
-# [Product Name] — Product Requirements Document
-
+Replace [Product Name] with the actual product name from the structured analysis.
 ## 1. Executive Summary
 2–3 sentences max. What is it, who is it for, and why does it matter?
 

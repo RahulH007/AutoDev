@@ -1,7 +1,7 @@
 import json
 import os
 
-def save_llm_json(data: dict, filename: str, folder="memory"):
+def save_llm_json(data: dict, filename: str, folder: str) -> str:
     """
     Save dictionary data as JSON.
     """
