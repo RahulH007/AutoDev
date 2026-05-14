@@ -1,435 +1,351 @@
 {
-    "product_name": "LinkedIn Engagement AI",
-    "product_summary": "An AI-powered platform designed to help users identify high-performing LinkedIn content, analyze its engagement drivers, and generate new, optimized posts that mimic successful trends for increased reach and interaction.",
-    "problem_statement": "Content creators and marketers on LinkedIn struggle to consistently produce highly engaging posts due to the dynamic nature of trends, the difficulty in manually analyzing successful content, and the time-consuming process of crafting new, optimized posts. This leads to suboptimal content performance and missed opportunities for audience growth.",
+    "product_name": "ExpenseTrack",
+    "product_summary": "A simple web-based expense tracking application that allows users to log in, record expenses, and view basic financial reports.",
+    "problem_statement": "Individuals struggle to keep track of their daily expenses and lack visibility into their spending habits. There is a need for a lightweight, easy-to-use tool to log expenses and generate simple reports for personal financial awareness.",
     "target_users": [
-        "Social Media Managers",
-        "Content Marketers",
-        "Individual Professionals (e.g., thought leaders, job seekers)",
-        "Agencies managing multiple client LinkedIn profiles"
+        "Individuals managing personal finances",
+        "Freelancers tracking business expenses",
+        "Students monitoring spending"
     ],
     "success_metrics": [
-        "Average engagement rate (likes, comments, shares per impression) of AI-generated posts compared to user-generated baseline.",
-        "Number of trending posts identified per day/week.",
-        "User satisfaction with generated post quality (e.g., via feedback mechanism).",
-        "Reduction in time spent by users on content research and creation.",
-        "Number of active users and generated posts."
+        "Number of active users logging expenses weekly",
+        "Average number of expenses logged per user per week",
+        "Time to first expense entry after signup",
+        "User session duration"
     ],
     "features": [
         {
-            "name": "Trending Post Discovery",
-            "description": "Allows users to discover LinkedIn posts that are currently gaining significant traction based on predefined or user-adjustable criteria.",
+            "name": "User Authentication",
+            "description": "Users can sign up, log in, and log out securely.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "System displays a list of trending posts.",
-                "Users can filter trending posts by keywords, hashtags, or broad topics.",
-                "Trending posts are updated at least hourly.",
-                "Each trending post entry includes basic information (author, snippet, link, primary engagement metrics)."
+                "User can register with email and password",
+                "User can log in with valid credentials",
+                "Password is hashed and stored securely",
+                "Session is maintained after login",
+                "User can log out"
             ]
         },
         {
-            "name": "Detailed Engagement Analysis",
-            "description": "Provides a breakdown of engagement metrics for a selected trending post, potentially highlighting factors contributing to its success.",
+            "name": "Add Expense",
+            "description": "Users can add a new expense with amount, category, date, and optional notes.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "Upon selecting a post, the system displays total likes, comments, shares, and potentially views.",
-                "System provides a simple summary of why the post is trending (e.g., 'high comment velocity').",
-                "Users can view the full content of the selected post."
+                "Form includes fields for amount, category, date, and notes",
+                "Expense is saved to the database",
+                "Date defaults to current date",
+                "Category is selected from a predefined list"
             ]
         },
         {
-            "name": "AI-Powered Post Generation",
-            "description": "Generates a new LinkedIn post that is 'similar' in style, topic, or theme to a selected high-engagement post, but optimized for maximum engagement.",
+            "name": "View Expense List",
+            "description": "Users can view a list of their previously logged expenses.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "Users can select a trending post and initiate generation of a new post.",
-                "The generated post is relevant to the original post's topic/theme.",
-                "The generated post incorporates elements identified as high-engagement drivers (e.g., questions, calls to action, specific formatting).",
-                "Users can copy the generated post text.",
-                "Generated posts are grammatically correct and coherent."
+                "List displays amount, category, date, and notes",
+                "Expenses are sorted by date (newest first)",
+                "Each expense can be edited or deleted"
             ]
         },
         {
-            "name": "User Authentication & Profile Management",
-            "description": "Secure user login, registration, and basic profile management.",
-            "priority": "high",
+            "name": "Edit/Delete Expense",
+            "description": "Users can modify or remove existing expenses.",
+            "priority": "medium",
             "is_mvp": true,
             "acceptance_criteria": [
-                "Users can register and log in securely.",
-                "Users can manage their basic profile information (e.g., email, password)."
+                "User can click edit to change expense details",
+                "User can delete an expense with confirmation",
+                "Changes are persisted in the database"
             ]
         },
         {
-            "name": "Search & Filter Enhancements",
-            "description": "Advanced filtering options for trending posts (e.g., by industry, company size, specific influencers, post type).",
+            "name": "Expense Reports",
+            "description": "Users can view aggregated reports by category and time period (e.g., weekly, monthly).",
             "priority": "medium",
             "is_mvp": false,
             "acceptance_criteria": [
-                "Users can apply multiple filters simultaneously.",
-                "Search results are refined based on applied filters."
+                "Bar or pie chart shows spending by category",
+                "User can select time range",
+                "Total spending for period is displayed",
+                "Data is filtered to current user only"
             ]
         },
         {
-            "name": "Engagement Driver Insights",
-            "description": "More sophisticated analysis identifying specific keywords, sentiment, content structure, or media types that contribute to high engagement.",
+            "name": "Responsive Web Interface",
+            "description": "Frontend is usable on desktop and mobile devices.",
             "priority": "medium",
-            "is_mvp": false,
+            "is_mvp": true,
             "acceptance_criteria": [
-                "System provides a list of 'engagement drivers' (e.g., 'use of emojis', 'asking questions', 'personal story').",
-                "Insights are actionable and explainable."
-            ]
-        },
-        {
-            "name": "Post Generation Customization",
-            "description": "Allows users to provide additional prompts or modify parameters for the AI during post generation (e.g., tone, length, specific keywords to include/exclude).",
-            "priority": "medium",
-            "is_mvp": false,
-            "acceptance_criteria": [
-                "Users can input specific keywords or phrases for the AI to incorporate.",
-                "Users can select a desired tone (e.g., professional, casual, inspiring).",
-                "Users can specify desired post length."
+                "UI renders correctly on mobile screens",
+                "Forms are accessible and easy to use on touch devices"
             ]
         }
     ],
     "user_flows": [
         {
-            "name": "Discover Trending Posts",
-            "actor": "User",
+            "name": "User Signup and Login",
+            "actor": "New User",
             "steps": [
-                "User logs into the platform.",
-                "System displays a dashboard with currently trending LinkedIn posts.",
-                "User can optionally apply filters (e.g., keywords, topics).",
-                "User reviews the list of trending posts."
+                "Navigate to login page",
+                "Click 'Sign Up'",
+                "Enter email and password",
+                "Submit form",
+                "Receive confirmation email (optional)",
+                "Log in with credentials",
+                "Redirected to dashboard"
             ],
             "related_features": [
-                "Trending Post Discovery",
-                "User Authentication & Profile Management",
-                "Search & Filter Enhancements"
+                "User Authentication"
             ]
         },
         {
-            "name": "Analyze a Specific Trending Post",
-            "actor": "User",
+            "name": "Log a New Expense",
+            "actor": "Logged-in User",
             "steps": [
-                "User is viewing the list of trending posts.",
-                "User clicks on a specific post to view details.",
-                "System displays the full post content and its detailed engagement metrics.",
-                "System provides a summary of engagement drivers (MVP: basic; Post-MVP: advanced)."
+                "Navigate to 'Add Expense' page",
+                "Fill in amount, select category, confirm date, add notes",
+                "Click 'Save'",
+                "See confirmation",
+                "Redirected to expense list"
             ],
             "related_features": [
-                "Trending Post Discovery",
-                "Detailed Engagement Analysis",
-                "Engagement Driver Insights"
+                "Add Expense"
             ]
         },
         {
-            "name": "Generate a New High-Engagement Post",
-            "actor": "User",
+            "name": "View Monthly Report",
+            "actor": "Logged-in User",
             "steps": [
-                "User is viewing the detailed analysis of a trending post.",
-                "User clicks 'Generate Similar Post'.",
-                "(Post-MVP: User can provide additional prompts or customization).",
-                "System processes the request and generates a new post.",
-                "System displays the generated post.",
-                "User can copy the generated post text."
+                "Navigate to 'Reports' page",
+                "Select 'Monthly' view",
+                "Select month/year",
+                "View chart and totals",
+                "Interact with chart (optional)"
             ],
             "related_features": [
-                "Detailed Engagement Analysis",
-                "AI-Powered Post Generation",
-                "Post Generation Customization"
+                "Expense Reports"
             ]
         }
     ],
     "modules": [
         {
-            "name": "User Management Service",
-            "responsibility": "Handles user registration, authentication, authorization, and profile management.",
+            "name": "Auth Module",
+            "responsibility": "Handles user registration, login, logout, and session management.",
             "exposes": [
-                "login()",
-                "register()",
-                "getUserProfile()",
-                "updateUserProfile()"
+                "/api/auth/signup",
+                "/api/auth/login",
+                "/api/auth/logout"
+            ],
+            "depends_on": []
+        },
+        {
+            "name": "Expense Module",
+            "responsibility": "Manages creation, retrieval, update, and deletion of user expenses.",
+            "exposes": [
+                "/api/expenses",
+                "/api/expenses/:id"
             ],
             "depends_on": [
-                "Data Storage"
+                "Auth Module"
             ]
         },
         {
-            "name": "LinkedIn Data Ingestion Service",
-            "responsibility": "Connects to LinkedIn (via API or controlled scraping), fetches raw post data, and stores it. Handles rate limits and data freshness.",
+            "name": "Reporting Module",
+            "responsibility": "Generates aggregated expense data for visualization.",
             "exposes": [
-                "fetchTrendingPosts(criteria)",
-                "fetchPostDetails(postId)"
+                "/api/reports/monthly",
+                "/api/reports/category"
             ],
             "depends_on": [
-                "Data Storage"
+                "Expense Module"
             ]
         },
         {
-            "name": "Trending Algorithm Service",
-            "responsibility": "Processes raw LinkedIn post data to identify and rank 'trending' posts based on various metrics (e.g., engagement velocity, total engagement, recency).",
+            "name": "Frontend UI Module",
+            "responsibility": "Provides responsive web interface for user interaction.",
             "exposes": [
-                "getTrendingPosts(filters)"
+                "/",
+                "/login",
+                "/expenses",
+                "/expenses/new",
+                "/reports"
             ],
             "depends_on": [
-                "LinkedIn Data Ingestion Service",
-                "Data Storage"
-            ]
-        },
-        {
-            "name": "Engagement Analysis Service",
-            "responsibility": "Extracts and quantifies engagement metrics from posts. Analyzes content to identify potential drivers of engagement (e.g., keywords, sentiment, structure).",
-            "exposes": [
-                "analyzePostEngagement(postId)",
-                "getEngagementDrivers(postId)"
-            ],
-            "depends_on": [
-                "LinkedIn Data Ingestion Service",
-                "Data Storage"
-            ]
-        },
-        {
-            "name": "Content Generation Service (AI Core)",
-            "responsibility": "Utilizes an AI model (e.g., LLM) to generate new post content based on input from the Engagement Analysis Service and user preferences.",
-            "exposes": [
-                "generatePost(sourcePostId, generationParams)"
-            ],
-            "depends_on": [
-                "Engagement Analysis Service",
-                "Data Storage"
-            ]
-        },
-        {
-            "name": "API Gateway / Frontend Service",
-            "responsibility": "Acts as the primary interface for the frontend application. Orchestrates calls to backend services, handles request/response formatting, and potentially caching.",
-            "exposes": [
-                "All user-facing APIs"
-            ],
-            "depends_on": [
-                "User Management Service",
-                "Trending Algorithm Service",
-                "Engagement Analysis Service",
-                "Content Generation Service"
+                "Auth Module",
+                "Expense Module",
+                "Reporting Module"
             ]
         }
     ],
     "suggested_tech_stack": [
-        "Backend: Python (Flask/FastAPI) for AI/ML, Node.js/Java for other microservices",
-        "Database: PostgreSQL (relational), potentially MongoDB (NoSQL for raw data)",
-        "AI/ML: Hugging Face Transformers, OpenAI API (or similar LLM provider), Scikit-learn, PyTorch/TensorFlow",
-        "Frontend: React/Vue.js",
-        "Cloud Platform: AWS/GCP/Azure",
-        "Containerization: Docker, Kubernetes"
+        "Node.js with Express (backend)",
+        "PostgreSQL or SQLite (database)",
+        "React (frontend)",
+        "JWT for authentication",
+        "Chart.js for reports",
+        "Tailwind CSS or Bootstrap for styling"
     ],
-    "expected_scale": "Initial Launch: 1,000 daily active users (DAU), 10,000 trending posts processed daily, 500 generated posts daily. Year 1: 10,000 DAU, 100,000 trending posts processed daily, 5,000 generated posts daily. Peak Load: Ability to handle bursts of 2-3x average load for short periods.",
+    "expected_scale": "10k DAU at launch, 100k DAU in year 1",
     "data_entities": [
         {
             "name": "User",
-            "description": "Stores information about registered users of the platform.",
+            "description": "Represents an application user.",
             "key_attributes": [
-                "user_id (PK)",
-                "email (unique)",
+                "id",
+                "email",
                 "password_hash",
-                "salt",
-                "created_at",
-                "last_login"
-            ],
-            "relationships": [
-                "One-to-many with SearchQuery",
-                "One-to-many with GeneratedPost"
-            ]
-        },
-        {
-            "name": "LinkedInPost",
-            "description": "Stores raw and processed data for LinkedIn posts identified as trending or analyzed.",
-            "key_attributes": [
-                "post_id (PK)",
-                "linkedin_url (unique)",
-                "author_id",
-                "author_name",
-                "post_text",
-                "post_media_url (optional)",
-                "posted_at",
-                "fetched_at",
-                "raw_data (JSONB)"
-            ],
-            "relationships": [
-                "One-to-many with EngagementMetric"
-            ]
-        },
-        {
-            "name": "EngagementMetric",
-            "description": "Stores historical and current engagement metrics for a specific LinkedIn post.",
-            "key_attributes": [
-                "metric_id (PK)",
-                "post_id (FK)",
-                "likes",
-                "comments",
-                "shares",
-                "views (optional)",
-                "fetched_at"
-            ],
-            "relationships": [
-                "Many-to-one with LinkedInPost"
-            ]
-        },
-        {
-            "name": "GeneratedPost",
-            "description": "Stores the content of posts generated by the AI for users.",
-            "key_attributes": [
-                "generated_post_id (PK)",
-                "user_id (FK)",
-                "source_post_id (FK, optional)",
-                "generated_text",
-                "created_at",
-                "status (e.g., 'draft', 'copied')"
-            ],
-            "relationships": [
-                "Many-to-one with User",
-                "Many-to-one with LinkedInPost"
-            ]
-        },
-        {
-            "name": "SearchQuery",
-            "description": "Stores user-defined search criteria for trending posts.",
-            "key_attributes": [
-                "query_id (PK)",
-                "user_id (FK)",
-                "keywords",
-                "hashtags",
-                "filters (JSONB)",
                 "created_at"
             ],
             "relationships": [
-                "Many-to-one with User"
+                "has many Expenses",
+                "has many Reports"
+            ]
+        },
+        {
+            "name": "Expense",
+            "description": "Represents a single expense entry by a user.",
+            "key_attributes": [
+                "id",
+                "user_id",
+                "amount",
+                "category",
+                "date",
+                "notes",
+                "created_at",
+                "updated_at"
+            ],
+            "relationships": [
+                "belongs to User"
+            ]
+        },
+        {
+            "name": "Report",
+            "description": "Aggregated view of expenses over time or by category.",
+            "key_attributes": [
+                "id",
+                "user_id",
+                "type",
+                "period",
+                "data",
+                "generated_at"
+            ],
+            "relationships": [
+                "belongs to User",
+                "derived from Expenses"
             ]
         }
     ],
     "possible_apis": [
         {
             "method": "POST",
-            "path": "/api/v1/auth/register",
-            "description": "Registers a new user.",
+            "path": "/api/auth/signup",
+            "description": "Register a new user",
             "auth_required": false,
-            "related_module": "User Management Service"
+            "related_module": "Auth Module"
         },
         {
             "method": "POST",
-            "path": "/api/v1/auth/login",
-            "description": "Authenticates a user and returns an access token.",
+            "path": "/api/auth/login",
+            "description": "Authenticate user and return JWT",
             "auth_required": false,
-            "related_module": "User Management Service"
+            "related_module": "Auth Module"
         },
         {
             "method": "GET",
-            "path": "/api/v1/users/me",
-            "description": "Retrieves the authenticated user's profile.",
+            "path": "/api/expenses",
+            "description": "List all expenses for the current user",
             "auth_required": true,
-            "related_module": "User Management Service"
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/trending-posts",
-            "description": "Retrieves a list of currently trending LinkedIn posts. Supports optional query parameters for filtering (e.g., ?keywords=AI&limit=10).",
-            "auth_required": true,
-            "related_module": "Trending Algorithm Service"
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/posts/{post_id}",
-            "description": "Retrieves detailed information and engagement metrics for a specific LinkedIn post.",
-            "auth_required": true,
-            "related_module": "Engagement Analysis Service"
+            "related_module": "Expense Module"
         },
         {
             "method": "POST",
-            "path": "/api/v1/posts/{post_id}/generate-similar",
-            "description": "Generates a new LinkedIn post similar to the specified post_id, optimized for engagement.",
+            "path": "/api/expenses",
+            "description": "Create a new expense",
             "auth_required": true,
-            "related_module": "Content Generation Service"
+            "related_module": "Expense Module"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/expenses/:id",
+            "description": "Update an existing expense",
+            "auth_required": true,
+            "related_module": "Expense Module"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/expenses/:id",
+            "description": "Delete an expense",
+            "auth_required": true,
+            "related_module": "Expense Module"
         },
         {
             "method": "GET",
-            "path": "/api/v1/generated-posts",
-            "description": "Retrieves a list of posts previously generated by the AI for the authenticated user.",
+            "path": "/api/reports/monthly",
+            "description": "Get monthly expense summary",
             "auth_required": true,
-            "related_module": "Content Generation Service"
+            "related_module": "Reporting Module"
+        },
+        {
+            "method": "GET",
+            "path": "/api/reports/category",
+            "description": "Get spending breakdown by category",
+            "auth_required": true,
+            "related_module": "Reporting Module"
         }
     ],
     "functional_requirements": [
-        "FR1: The system shall allow users to register and log in securely.",
-        "FR2: The system shall display a dashboard of trending LinkedIn posts.",
-        "FR3: The system shall allow users to filter trending posts by keywords and hashtags.",
-        "FR4: The system shall provide detailed engagement metrics (likes, comments, shares, views) for any selected trending post.",
-        "FR5: The system shall generate a new LinkedIn post based on a selected trending post, maintaining thematic similarity while optimizing for engagement.",
-        "FR6: The generated post shall be presented to the user for review and copying.",
-        "FR7: The system shall store generated posts for user's historical reference.",
-        "FR8: The system shall ensure data displayed for trending posts is fresh, updated at least hourly."
+        "User must be authenticated to access expense and report endpoints",
+        "All expense operations are scoped to the authenticated user",
+        "Expense category must be one of predefined values (e.g., Food, Transport, Utilities, Entertainment, Health)",
+        "Reports must be generated in real-time or with minimal delay",
+        "Frontend must validate form inputs before submission"
     ],
     "non_functional_requirements": [
         {
             "category": "Performance",
-            "description": "Trending post discovery should be fast. Post generation should be responsive.",
-            "target_metric": "Trending posts list loads within 3 seconds. Post detail view loads within 2 seconds. Post generation completes within 10 seconds."
-        },
-        {
-            "category": "Scalability",
-            "description": "The system must be able to handle an increasing number of users and data volume without significant performance degradation.",
-            "target_metric": "Support 10,000 DAU and process 100,000 posts daily."
-        },
-        {
-            "category": "Reliability",
-            "description": "The system should be highly available and resilient to failures.",
-            "target_metric": "99.9% uptime."
+            "description": "API should respond within 500ms for 95% of requests under normal load",
+            "target_metric": "p95 < 500ms"
         },
         {
             "category": "Security",
-            "description": "User data and access to LinkedIn data must be protected.",
-            "target_metric": "Adherence to industry best practices for authentication, authorization, and data encryption (at rest and in transit)."
+            "description": "Passwords must be hashed using bcrypt or equivalent",
+            "target_metric": null
         },
         {
-            "category": "Data Freshness",
-            "description": "Information about trending posts must be current.",
-            "target_metric": "Trending post data updated hourly."
+            "category": "Availability",
+            "description": "System should be available 99.9% of the time",
+            "target_metric": "99.9%"
         },
         {
-            "category": "Maintainability",
-            "description": "The codebase should be modular, well-documented, and easy to update and extend.",
-            "target_metric": "Low technical debt, clear module boundaries."
+            "category": "Usability",
+            "description": "New users should be able to log first expense within 2 minutes of signup",
+            "target_metric": "Time to first expense < 2 min"
         }
     ],
     "constraints": [
-        "Reliance on LinkedIn's API terms of service and rate limits (if using API).",
-        "Legal and ethical considerations regarding data scraping if API access is insufficient or restricted.",
-        "Computational cost associated with running and fine-tuning large language models for content generation.",
-        "The quality of generated content is dependent on the underlying AI model's capabilities and training data.",
-        "The system must comply with data privacy regulations (e.g., GDPR, CCPA) for user data."
+        "Must be a web-only application (no native mobile apps initially)",
+        "Must support modern browsers (Chrome, Firefox, Safari, Edge)",
+        "Must use open-source technologies"
     ],
     "assumptions": [
-        "We can obtain sufficient access to LinkedIn post data (either via official API or legally permissible and technically feasible scraping).",
-        "'Trending' can be effectively defined and identified algorithmically based on available engagement metrics.",
-        "AI models (LLMs) are capable of generating coherent, relevant, and engaging LinkedIn post content based on provided examples and optimization goals.",
-        "Users will have a basic understanding of how to use an AI content generation tool.",
-        "The system will primarily focus on text-based posts, with potential future expansion to include image/video analysis."
+        "Users have basic internet literacy",
+        "Users will access the app from personal devices",
+        "Initial user base will be tech-savvy early adopters",
+        "No multi-user household accounts initially"
     ],
     "open_questions": [
-        "What is the exact definition and calculation for 'trending' posts? (e.g., engagement velocity, absolute numbers, specific time windows, specific types of engagement).",
-        "What are the specific legal and technical implications of accessing LinkedIn data? Will an official API be sufficient, or will scraping be necessary, and if so, how will legal compliance be ensured?",
-        "What level of customization will be offered for AI-generated posts in the MVP vs. future iterations?",
-        "How will the system handle different languages for trending post discovery and generation? (MVP will likely be English-only).",
-        "What are the specific performance targets for the AI content generation (e.g., latency, cost per generation)?",
-        "How will the system measure the 'similarity' between a generated post and a source post?",
-        "Will the system need to detect and filter out spam or low-quality trending posts?"
+        "Should we support expense attachments (e.g., receipts)?",
+        "Should reports support export to CSV/PDF?",
+        "Should we include budgeting features in future?"
     ],
     "out_of_scope": [
-        "Direct integration for posting content to LinkedIn from the platform.",
-        "Advanced analytics dashboards for user's own LinkedIn performance.",
-        "Support for multiple social media platforms beyond LinkedIn.",
-        "Real-time notifications for trending posts.",
-        "User-defined AI model fine-tuning."
+        "Bank account integration or automatic transaction import",
+        "Multi-user teams or shared expenses",
+        "Mobile push notifications",
+        "Offline mode"
     ],
-    "complexity_estimate": "high"
+    "complexity_estimate": "medium"
 }

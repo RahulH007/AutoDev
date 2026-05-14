@@ -1,535 +1,232 @@
 {
-    "system_overview": "The LinkedIn Engagement AI is an AI-powered platform designed to help users discover trending LinkedIn posts, analyze their engagement drivers, and generate new, optimized posts for increased reach and interaction. The system comprises several microservices: a User Service for authentication and profile management, a LinkedIn Ingestion Service for fetching raw post data, a Trending Analysis Service for identifying trending posts and analyzing engagement, an AI Content Service for generating new posts, and an API Gateway to orchestrate requests from the React Frontend.",
-    "architecture_style": "microservices",
+    "system_overview": "ExpenseTrack is a web-based personal expense tracking application that enables users to authenticate, log expenses, view expense history, and generate spending reports. The system follows a modular monolith architecture with a React frontend, FastAPI backend, and PostgreSQL database, all containerized using Docker for local deployment. The backend exposes RESTful APIs secured with JWT, while the frontend provides a responsive UI for desktop and mobile use.",
+    "architecture_style": "modular_monolith",
     "services": [
         {
-            "name": "frontend",
-            "description": "User interface for the LinkedIn Engagement AI platform, built with React. It consumes APIs exposed by the API Gateway.",
-            "tech_stack": [
-                "React",
-                "JavaScript",
-                "HTML",
-                "CSS"
-            ],
-            "dependencies": [
-                "api_gateway"
-            ],
-            "api_endpoints": [],
-            "data_models": []
-        },
-        {
-            "name": "api_gateway",
-            "description": "Acts as the entry point for the frontend application. It handles request routing, authentication enforcement, and orchestrates calls to various backend microservices.",
-            "tech_stack": [
-                "Python",
-                "FastAPI"
-            ],
-            "dependencies": [
-                "user_service",
-                "trending_analysis_service",
-                "ai_content_service"
-            ],
-            "api_endpoints": [
-                {
-                    "method": "POST",
-                    "path": "/api/v1/auth/register",
-                    "description": "Registers a new user.",
-                    "request_body": "{'email': 'string', 'password': 'string'}",
-                    "response": "{'message': 'User registered successfully'}",
-                    "auth_required": false
-                },
-                {
-                    "method": "POST",
-                    "path": "/api/v1/auth/login",
-                    "description": "Authenticates a user and returns an access token.",
-                    "request_body": "{'email': 'string', 'password': 'string'}",
-                    "response": "{'access_token': 'string', 'token_type': 'bearer'}",
-                    "auth_required": false
-                },
-                {
-                    "method": "GET",
-                    "path": "/api/v1/users/me",
-                    "description": "Retrieves the authenticated user's profile.",
-                    "request_body": null,
-                    "response": "{'user_id': 'string', 'email': 'string', 'created_at': 'datetime'}",
-                    "auth_required": true
-                },
-                {
-                    "method": "GET",
-                    "path": "/api/v1/trending-posts",
-                    "description": "Retrieves a list of currently trending LinkedIn posts. Supports optional query parameters for filtering (e.g., ?keywords=AI&limit=10).",
-                    "request_body": null,
-                    "response": "[{'post_id': 'string', 'author_name': 'string', 'snippet': 'string', 'linkedin_url': 'string', 'likes': 'integer', 'comments': 'integer', 'shares': 'integer'}]",
-                    "auth_required": true
-                },
-                {
-                    "method": "GET",
-                    "path": "/api/v1/posts/{post_id}",
-                    "description": "Retrieves detailed information and engagement metrics for a specific LinkedIn post.",
-                    "request_body": null,
-                    "response": "{'post_id': 'string', 'author_name': 'string', 'post_text': 'string', 'linkedin_url': 'string', 'likes': 'integer', 'comments': 'integer', 'shares': 'integer', 'views': 'integer', 'engagement_summary': 'string'}",
-                    "auth_required": true
-                },
-                {
-                    "method": "POST",
-                    "path": "/api/v1/posts/{post_id}/generate-similar",
-                    "description": "Generates a new LinkedIn post similar to the specified post_id, optimized for engagement.",
-                    "request_body": "{'tone': 'string', 'length': 'string', 'keywords': ['string']}",
-                    "response": "{'generated_post_id': 'string', 'generated_text': 'string'}",
-                    "auth_required": true
-                },
-                {
-                    "method": "GET",
-                    "path": "/api/v1/generated-posts",
-                    "description": "Retrieves a list of posts previously generated by the AI for the authenticated user.",
-                    "request_body": null,
-                    "response": "[{'generated_post_id': 'string', 'source_post_id': 'string', 'generated_text': 'string', 'created_at': 'datetime'}]",
-                    "auth_required": true
-                }
-            ],
-            "data_models": []
-        },
-        {
-            "name": "user_service",
-            "description": "Manages user registration, authentication (hashing passwords, generating JWTs), authorization, and user profile management.",
+            "name": "Backend API",
+            "description": "Handles all business logic, user authentication, expense management, and report generation. Exposes RESTful endpoints secured with JWT.",
             "tech_stack": [
                 "Python",
                 "FastAPI",
-                "SQLAlchemy",
-                "Pydantic"
+                "JWT",
+                "SQLAlchemy"
             ],
-            "dependencies": [
-                "postgres_db"
-            ],
+            "dependencies": [],
             "api_endpoints": [
                 {
                     "method": "POST",
-                    "path": "/register",
-                    "description": "Registers a new user.",
-                    "request_body": "{'email': 'string', 'password': 'string'}",
-                    "response": "{'message': 'User registered successfully'}",
+                    "path": "/api/auth/signup",
+                    "description": "Register a new user with email and password",
+                    "request_body": "{ \"email\": \"user@example.com\", \"password\": \"securepass\" }",
+                    "response": "{ \"message\": \"User created successfully\" }",
                     "auth_required": false
                 },
                 {
                     "method": "POST",
-                    "path": "/login",
-                    "description": "Authenticates a user and returns an access token.",
-                    "request_body": "{'email': 'string', 'password': 'string'}",
-                    "response": "{'access_token': 'string', 'token_type': 'bearer'}",
+                    "path": "/api/auth/login",
+                    "description": "Authenticate user and return JWT token",
+                    "request_body": "{ \"email\": \"user@example.com\", \"password\": \"securepass\" }",
+                    "response": "{ \"access_token\": \"jwt.token.here\", \"token_type\": \"bearer\" }",
                     "auth_required": false
                 },
                 {
+                    "method": "POST",
+                    "path": "/api/auth/logout",
+                    "description": "Invalidate current session",
+                    "request_body": "",
+                    "response": "{ \"message\": \"Logged out successfully\" }",
+                    "auth_required": true
+                },
+                {
                     "method": "GET",
-                    "path": "/me",
-                    "description": "Retrieves the authenticated user's profile.",
+                    "path": "/api/expenses",
+                    "description": "Retrieve all expenses for the authenticated user",
                     "request_body": null,
-                    "response": "{'user_id': 'string', 'email': 'string', 'created_at': 'datetime'}",
+                    "response": "[ { \"id\": 1, \"amount\": 50.0, \"category\": \"Food\", \"date\": \"2023-10-05\", \"notes\": \"Lunch\" } ]",
+                    "auth_required": true
+                },
+                {
+                    "method": "POST",
+                    "path": "/api/expenses",
+                    "description": "Create a new expense for the authenticated user",
+                    "request_body": "{ \"amount\": 25.5, \"category\": \"Transport\", \"date\": \"2023-10-05\", \"notes\": \"Bus fare\" }",
+                    "response": "{ \"id\": 2, \"message\": \"Expense created\" }",
+                    "auth_required": true
+                },
+                {
+                    "method": "PUT",
+                    "path": "/api/expenses/{id}",
+                    "description": "Update an existing expense",
+                    "request_body": "{ \"amount\": 30.0, \"category\": \"Food\", \"notes\": \"Updated lunch\" }",
+                    "response": "{ \"message\": \"Expense updated\" }",
+                    "auth_required": true
+                },
+                {
+                    "method": "DELETE",
+                    "path": "/api/expenses/{id}",
+                    "description": "Delete an expense by ID",
+                    "request_body": null,
+                    "response": "{ \"message\": \"Expense deleted\" }",
+                    "auth_required": true
+                },
+                {
+                    "method": "GET",
+                    "path": "/api/reports/monthly",
+                    "description": "Get monthly expense summary for the user",
+                    "request_body": null,
+                    "response": "{ \"period\": \"2023-10\", \"total\": 450.0, \"expenses\": [ { \"category\": \"Food\", \"total\": 200 }, { \"category\": \"Transport\", \"total\": 100 } ] }",
+                    "auth_required": true
+                },
+                {
+                    "method": "GET",
+                    "path": "/api/reports/category",
+                    "description": "Get spending breakdown by category",
+                    "request_body": null,
+                    "response": "{ \"user_id\": 1, \"breakdown\": { \"Food\": 200, \"Transport\": 100, \"Utilities\": 150 } }",
                     "auth_required": true
                 }
             ],
             "data_models": [
                 {
                     "name": "User",
-                    "description": "Stores information about registered users of the platform.",
+                    "description": "Application user with secure credentials",
                     "fields": [
-                        "user_id (UUID, PK)",
-                        "email (string, unique)",
-                        "password_hash (string)",
-                        "salt (string)",
-                        "created_at (datetime)",
-                        "last_login (datetime, nullable)"
+                        "id: Integer, primary_key",
+                        "email: String, unique",
+                        "password_hash: String",
+                        "created_at: DateTime"
                     ]
                 },
                 {
-                    "name": "SearchQuery",
-                    "description": "Stores user-defined search criteria for trending posts.",
+                    "name": "Expense",
+                    "description": "User's expense entry with category and date",
                     "fields": [
-                        "query_id (UUID, PK)",
-                        "user_id (UUID, FK to User)",
-                        "keywords (string, nullable)",
-                        "hashtags (string, nullable)",
-                        "filters (JSONB, nullable)",
-                        "created_at (datetime)"
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "linkedin_ingestion_service",
-            "description": "Responsible for connecting to LinkedIn (via API or controlled scraping) to fetch raw post data. It handles scheduling, rate limits, and initial storage of raw data. It will use a background worker for scheduled tasks.",
-            "tech_stack": [
-                "Python",
-                "FastAPI",
-                "Requests",
-                "BeautifulSoup4 (for scraping if needed)",
-                "SQLAlchemy",
-                "Redis (for task queue)"
-            ],
-            "dependencies": [
-                "postgres_db",
-                "redis_cache"
-            ],
-            "api_endpoints": [
-                {
-                    "method": "POST",
-                    "path": "/ingest/schedule",
-                    "description": "Schedules a new LinkedIn data ingestion job.",
-                    "request_body": "{'frequency_hours': 'integer', 'keywords': 'string', 'hashtags': 'string'}",
-                    "response": "{'job_id': 'string', 'status': 'scheduled'}",
-                    "auth_required": true
-                },
-                {
-                    "method": "GET",
-                    "path": "/ingest/status/{job_id}",
-                    "description": "Checks the status of a scheduled ingestion job.",
-                    "request_body": null,
-                    "response": "{'job_id': 'string', 'status': 'string', 'progress': 'float'}",
-                    "auth_required": true
-                }
-            ],
-            "data_models": [
-                {
-                    "name": "LinkedInPost",
-                    "description": "Stores raw and processed data for LinkedIn posts identified as trending or analyzed.",
-                    "fields": [
-                        "post_id (UUID, PK)",
-                        "linkedin_url (string, unique)",
-                        "author_id (string, nullable)",
-                        "author_name (string, nullable)",
-                        "post_text (text)",
-                        "post_media_url (string, nullable)",
-                        "posted_at (datetime, nullable)",
-                        "fetched_at (datetime)",
-                        "raw_data (JSONB)"
+                        "id: Integer, primary_key",
+                        "user_id: Integer, foreign_key",
+                        "amount: Numeric",
+                        "category: String",
+                        "date: Date",
+                        "notes: Text",
+                        "created_at: DateTime",
+                        "updated_at: DateTime"
                     ]
                 }
             ]
         },
         {
-            "name": "trending_analysis_service",
-            "description": "Processes raw LinkedIn post data to identify and rank 'trending' posts based on various metrics (e.g., engagement velocity, total engagement, recency). It also extracts and quantifies engagement metrics and provides a summary of potential engagement drivers.",
+            "name": "Frontend UI",
+            "description": "Responsive web interface for user interaction, built with React and Tailwind CSS.",
             "tech_stack": [
-                "Python",
-                "FastAPI",
-                "Pandas",
-                "Scikit-learn (for basic analysis)",
-                "SQLAlchemy"
+                "React",
+                "Tailwind CSS",
+                "Chart.js",
+                "Axios"
             ],
             "dependencies": [
-                "postgres_db"
+                "Backend API"
             ],
-            "api_endpoints": [
-                {
-                    "method": "GET",
-                    "path": "/trending",
-                    "description": "Retrieves a list of currently trending LinkedIn posts. Supports optional query parameters for filtering.",
-                    "request_body": null,
-                    "response": "[{'post_id': 'string', 'author_name': 'string', 'snippet': 'string', 'linkedin_url': 'string', 'likes': 'integer', 'comments': 'integer', 'shares': 'integer'}]",
-                    "auth_required": true
-                },
-                {
-                    "method": "GET",
-                    "path": "/posts/{post_id}/details",
-                    "description": "Retrieves detailed information and engagement metrics for a specific LinkedIn post.",
-                    "request_body": null,
-                    "response": "{'post_id': 'string', 'author_name': 'string', 'post_text': 'string', 'linkedin_url': 'string', 'likes': 'integer', 'comments': 'integer', 'shares': 'integer', 'views': 'integer', 'engagement_summary': 'string'}",
-                    "auth_required": true
-                },
-                {
-                    "method": "POST",
-                    "path": "/posts/process-new-data",
-                    "description": "Trigger processing of newly ingested LinkedIn posts to update trending status and engagement metrics.",
-                    "request_body": null,
-                    "response": "{'message': 'Processing initiated'}",
-                    "auth_required": false
-                }
-            ],
-            "data_models": [
-                {
-                    "name": "EngagementMetric",
-                    "description": "Stores historical and current engagement metrics for a specific LinkedIn post.",
-                    "fields": [
-                        "metric_id (UUID, PK)",
-                        "post_id (UUID, FK to LinkedInPost)",
-                        "likes (integer)",
-                        "comments (integer)",
-                        "shares (integer)",
-                        "views (integer, nullable)",
-                        "fetched_at (datetime)"
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "ai_content_service",
-            "description": "Utilizes an AI model (e.g., LLM) to generate new post content based on input from the Trending Analysis Service and user preferences. It stores generated posts.",
-            "tech_stack": [
-                "Python",
-                "FastAPI",
-                "Hugging Face Transformers",
-                "OpenAI API (or similar LLM provider)",
-                "SQLAlchemy"
-            ],
-            "dependencies": [
-                "postgres_db",
-                "trending_analysis_service"
-            ],
-            "api_endpoints": [
-                {
-                    "method": "POST",
-                    "path": "/generate",
-                    "description": "Generates a new LinkedIn post based on a source post and generation parameters.",
-                    "request_body": "{'source_post_id': 'string', 'user_id': 'string', 'tone': 'string', 'length': 'string', 'keywords': ['string']}",
-                    "response": "{'generated_post_id': 'string', 'generated_text': 'string'}",
-                    "auth_required": true
-                },
-                {
-                    "method": "GET",
-                    "path": "/generated-posts/{user_id}",
-                    "description": "Retrieves a list of posts previously generated by the AI for a specific user.",
-                    "request_body": null,
-                    "response": "[{'generated_post_id': 'string', 'source_post_id': 'string', 'generated_text': 'string', 'created_at': 'datetime', 'status': 'string'}]",
-                    "auth_required": true
-                }
-            ],
-            "data_models": [
-                {
-                    "name": "GeneratedPost",
-                    "description": "Stores the content of posts generated by the AI for users.",
-                    "fields": [
-                        "generated_post_id (UUID, PK)",
-                        "user_id (UUID, FK to User)",
-                        "source_post_id (UUID, FK to LinkedInPost, nullable)",
-                        "generated_text (text)",
-                        "created_at (datetime)",
-                        "status (string, e.g., 'draft', 'copied')"
-                    ]
-                }
-            ]
+            "api_endpoints": [],
+            "data_models": []
         }
     ],
     "databases": [
         {
-            "name": "postgres_db",
+            "name": "AppDatabase",
             "type": "PostgreSQL",
-            "purpose": "Primary relational database for storing user data, LinkedIn post metadata, engagement metrics, and generated posts.",
+            "purpose": "Primary database storing users, expenses, and reports",
             "entities": [
                 "User",
-                "LinkedInPost",
-                "EngagementMetric",
-                "GeneratedPost",
-                "SearchQuery"
-            ]
-        },
-        {
-            "name": "redis_cache",
-            "type": "Redis",
-            "purpose": "Used for caching frequently accessed data (e.g., trending posts), rate limiting, and as a message broker for background tasks (e.g., scheduling ingestion jobs).",
-            "entities": [
-                "CachedTrendingPosts",
-                "IngestionJobQueue"
+                "Expense"
             ]
         }
     ],
     "external_integrations": [
         {
-            "name": "LinkedIn Data Source",
-            "purpose": "To fetch raw LinkedIn post data for trending post discovery and analysis.",
-            "integration_method": "API (preferred) or controlled scraping (if API is insufficient/restricted)"
-        },
-        {
-            "name": "Large Language Model (LLM) Provider",
-            "purpose": "To generate new, optimized LinkedIn post content based on analysis and user input.",
-            "integration_method": "REST API (e.g., OpenAI API, Hugging Face Inference API)"
+            "name": "Chart.js",
+            "purpose": "Render expense reports as bar and pie charts",
+            "integration_method": "NPM package in frontend"
         }
     ],
     "environment_variables": [
         {
             "name": "DATABASE_URL",
-            "description": "Connection string for the PostgreSQL database.",
-            "example": "postgresql://user:password@db:5432/linkedin_ai_db"
-        },
-        {
-            "name": "REDIS_URL",
-            "description": "Connection string for the Redis instance.",
-            "example": "redis://redis:6379/0"
+            "description": "PostgreSQL database connection string",
+            "example": "postgresql://user:pass@db:5432/expensetrack"
         },
         {
             "name": "SECRET_KEY",
-            "description": "Secret key for JWT token generation and other security purposes.",
-            "example": "super-secret-key"
+            "description": "Secret key for JWT token signing",
+            "example": "your-super-secret-jwt-key"
         },
         {
             "name": "ALGORITHM",
-            "description": "Algorithm used for JWT signing.",
+            "description": "JWT encryption algorithm",
             "example": "HS256"
         },
         {
             "name": "ACCESS_TOKEN_EXPIRE_MINUTES",
-            "description": "Expiration time for access tokens in minutes.",
+            "description": "JWT token expiration time in minutes",
             "example": "30"
-        },
-        {
-            "name": "LINKEDIN_API_KEY",
-            "description": "API key for LinkedIn (if using official API).",
-            "example": "your_linkedin_api_key"
-        },
-        {
-            "name": "LLM_API_KEY",
-            "description": "API key for the Large Language Model provider (e.g., OpenAI).",
-            "example": "sk-your_openai_api_key"
-        },
-        {
-            "name": "LLM_MODEL_NAME",
-            "description": "Name of the LLM model to use for content generation.",
-            "example": "gpt-3.5-turbo"
-        },
-        {
-            "name": "USER_SERVICE_URL",
-            "description": "Internal URL for the User Service.",
-            "example": "http://user_service:8001"
-        },
-        {
-            "name": "LINKEDIN_INGESTION_SERVICE_URL",
-            "description": "Internal URL for the LinkedIn Ingestion Service.",
-            "example": "http://linkedin_ingestion_service:8002"
-        },
-        {
-            "name": "TRENDING_ANALYSIS_SERVICE_URL",
-            "description": "Internal URL for the Trending Analysis Service.",
-            "example": "http://trending_analysis_service:8003"
-        },
-        {
-            "name": "AI_CONTENT_SERVICE_URL",
-            "description": "Internal URL for the AI Content Service.",
-            "example": "http://ai_content_service:8004"
         }
     ],
     "project_structure": [
         {
-            "service_name": "root",
+            "service_name": "Backend API",
             "folders": [
-                "frontend",
-                "backend",
-                "docker-compose"
+                "app",
+                "app/api",
+                "app/models",
+                "app/schemas",
+                "app/core",
+                "app/utils"
             ],
             "key_files": [
-                "docker-compose.yml",
-                "README.md"
+                "main.py",
+                "database.py",
+                "dependencies.py"
             ]
         },
         {
-            "service_name": "frontend",
+            "service_name": "Frontend UI",
             "folders": [
                 "src",
-                "public",
-                "node_modules"
+                "src/components",
+                "src/pages",
+                "src/services",
+                "src/assets",
+                "src/utils"
             ],
             "key_files": [
-                "package.json",
-                "Dockerfile",
-                "src/App.js",
-                "src/index.js"
-            ]
-        },
-        {
-            "service_name": "api_gateway",
-            "folders": [
-                "app",
-                "tests",
-                "config"
-            ],
-            "key_files": [
-                "Dockerfile",
-                "requirements.txt",
-                "app/main.py",
-                "app/routers/auth.py",
-                "app/routers/posts.py",
-                "app/dependencies.py"
-            ]
-        },
-        {
-            "service_name": "user_service",
-            "folders": [
-                "app",
-                "tests",
-                "config",
-                "database"
-            ],
-            "key_files": [
-                "Dockerfile",
-                "requirements.txt",
-                "app/main.py",
-                "app/models.py",
-                "app/schemas.py",
-                "app/crud.py",
-                "app/auth.py",
-                "database/init_db.py"
-            ]
-        },
-        {
-            "service_name": "linkedin_ingestion_service",
-            "folders": [
-                "app",
-                "tests",
-                "config",
-                "database",
-                "workers"
-            ],
-            "key_files": [
-                "Dockerfile",
-                "requirements.txt",
-                "app/main.py",
-                "app/models.py",
-                "app/schemas.py",
-                "app/scraper.py",
-                "workers/ingestion_worker.py"
-            ]
-        },
-        {
-            "service_name": "trending_analysis_service",
-            "folders": [
-                "app",
-                "tests",
-                "config",
-                "database",
-                "analysis"
-            ],
-            "key_files": [
-                "Dockerfile",
-                "requirements.txt",
-                "app/main.py",
-                "app/models.py",
-                "app/schemas.py",
-                "app/crud.py",
-                "analysis/trending_algo.py",
-                "analysis/engagement_analyzer.py"
-            ]
-        },
-        {
-            "service_name": "ai_content_service",
-            "folders": [
-                "app",
-                "tests",
-                "config",
-                "database",
-                "llm_integration"
-            ],
-            "key_files": [
-                "Dockerfile",
-                "requirements.txt",
-                "app/main.py",
-                "app/models.py",
-                "app/schemas.py",
-                "app/crud.py",
-                "llm_integration/generator.py"
+                "App.jsx",
+                "main.jsx",
+                "index.html"
             ]
         }
     ],
     "docker_compose": {
         "services": [
             {
-                "name": "postgres_db",
+                "name": "backend",
+                "image_or_build": "python:3.9",
+                "ports": [
+                    "8000:8000"
+                ],
+                "depends_on": [
+                    "db"
+                ]
+            },
+            {
+                "name": "frontend",
+                "image_or_build": "node:16",
+                "ports": [
+                    "3000:3000"
+                ],
+                "depends_on": [
+                    "backend"
+                ]
+            },
+            {
+                "name": "db",
                 "image_or_build": "postgres:13",
                 "ports": [
                     "5432:5432"
@@ -537,140 +234,59 @@
                 "depends_on": []
             },
             {
-                "name": "redis_cache",
-                "image_or_build": "redis:6",
+                "name": "redis",
+                "image_or_build": "redis:7",
                 "ports": [
                     "6379:6379"
                 ],
                 "depends_on": []
-            },
-            {
-                "name": "user_service",
-                "image_or_build": "./backend/user_service",
-                "ports": [
-                    "8001:8000"
-                ],
-                "depends_on": [
-                    "postgres_db"
-                ]
-            },
-            {
-                "name": "linkedin_ingestion_service",
-                "image_or_build": "./backend/linkedin_ingestion_service",
-                "ports": [
-                    "8002:8000"
-                ],
-                "depends_on": [
-                    "postgres_db",
-                    "redis_cache"
-                ]
-            },
-            {
-                "name": "trending_analysis_service",
-                "image_or_build": "./backend/trending_analysis_service",
-                "ports": [
-                    "8003:8000"
-                ],
-                "depends_on": [
-                    "postgres_db"
-                ]
-            },
-            {
-                "name": "ai_content_service",
-                "image_or_build": "./backend/ai_content_service",
-                "ports": [
-                    "8004:8000"
-                ],
-                "depends_on": [
-                    "postgres_db",
-                    "trending_analysis_service"
-                ]
-            },
-            {
-                "name": "api_gateway",
-                "image_or_build": "./backend/api_gateway",
-                "ports": [
-                    "8000:8000"
-                ],
-                "depends_on": [
-                    "user_service",
-                    "linkedin_ingestion_service",
-                    "trending_analysis_service",
-                    "ai_content_service"
-                ]
-            },
-            {
-                "name": "frontend",
-                "image_or_build": "./frontend",
-                "ports": [
-                    "3000:3000"
-                ],
-                "depends_on": [
-                    "api_gateway"
-                ]
             }
         ]
     },
     "implementation_tasks": [
         {
-            "service": "postgres_db",
-            "task": "Database Setup",
-            "description": "Initialize PostgreSQL database, create necessary tables and relationships based on data models."
+            "service": "Backend API",
+            "task": "Set up FastAPI application with JWT authentication",
+            "description": "Initialize FastAPI app, configure JWT, implement /signup and /login endpoints with password hashing"
         },
         {
-            "service": "redis_cache",
-            "task": "Redis Setup",
-            "description": "Ensure Redis is running and accessible for caching and task queuing."
+            "service": "Backend API",
+            "task": "Implement CRUD operations for Expense model",
+            "description": "Create API routes for creating, reading, updating, and deleting expenses with user ownership checks"
         },
         {
-            "service": "user_service",
-            "task": "User Authentication & Profile",
-            "description": "Implement user registration, login (JWT generation/validation), and basic profile management endpoints. Integrate with PostgreSQL for user data storage."
+            "service": "Backend API",
+            "task": "Build monthly and category-based report endpoints",
+            "description": "Implement aggregation logic to generate spending reports by time and category"
         },
         {
-            "service": "linkedin_ingestion_service",
-            "task": "LinkedIn Data Fetching",
-            "description": "Develop a module to fetch raw LinkedIn post data (via API or scraping). Implement scheduled background tasks using Redis for hourly updates. Store raw data in PostgreSQL."
+            "service": "Frontend UI",
+            "task": "Develop responsive login and signup pages",
+            "description": "Create authentication forms with validation using React and Tailwind CSS"
         },
         {
-            "service": "trending_analysis_service",
-            "task": "Trending & Engagement Logic",
-            "description": "Implement algorithms to identify trending posts and calculate detailed engagement metrics. Develop endpoints to retrieve trending lists and specific post analyses. Store processed metrics in PostgreSQL."
+            "service": "Frontend UI",
+            "task": "Build expense list and form components",
+            "description": "Implement UI for viewing, adding, editing, and deleting expenses"
         },
         {
-            "service": "ai_content_service",
-            "task": "AI Post Generation",
-            "description": "Integrate with an LLM provider (e.g., OpenAI) to generate new LinkedIn posts based on a source post's content and engagement drivers. Implement endpoints for post generation and retrieval of generated posts. Store generated posts in PostgreSQL."
-        },
-        {
-            "service": "api_gateway",
-            "task": "API Gateway & Routing",
-            "description": "Set up FastAPI as an API Gateway. Implement JWT validation for authenticated routes. Configure routing to direct requests to the appropriate backend microservices."
-        },
-        {
-            "service": "frontend",
-            "task": "User Interface Development",
-            "description": "Develop the React application, including user authentication forms, dashboard for trending posts, detailed post view, and the AI post generation interface. Integrate with the API Gateway."
-        },
-        {
-            "service": "docker_compose",
-            "task": "Containerization & Orchestration",
-            "description": "Create Dockerfiles for each service and configure a docker-compose.yml file to build, link, and run all services locally."
+            "service": "Frontend UI",
+            "task": "Integrate Chart.js for expense reports",
+            "description": "Display spending data in visual format with time range selectors"
         }
     ],
     "development_notes": [
-        "For LinkedIn data ingestion, prioritize official API usage. If scraping is necessary, ensure strict adherence to legal and ethical guidelines, and implement robust error handling for changes in LinkedIn's UI/structure.",
-        "The 'trending' algorithm in the MVP should start simple (e.g., engagement velocity over the last 24 hours) and can be refined later.",
-        "Initial LLM integration should focus on a single, cost-effective model. Customization options for post generation can be expanded in future iterations.",
-        "Implement comprehensive logging and monitoring for all services to aid in debugging and performance analysis.",
-        "Ensure proper environment variable management for sensitive information like API keys and database credentials."
+        "Use bcrypt for password hashing",
+        "Validate all user inputs on both frontend and backend",
+        "Ensure all API responses include proper error handling",
+        "Implement CORS correctly between frontend and backend",
+        "Use environment variables for configuration"
     ],
     "risks": [
-        "Reliance on LinkedIn's API terms of service and rate limits, or legal/technical challenges with scraping.",
-        "Computational cost and latency associated with running LLMs for content generation.",
-        "Quality and relevance of AI-generated content may vary and require continuous fine-tuning or prompt engineering.",
-        "Scalability challenges if the number of posts to ingest and analyze grows rapidly beyond initial estimates.",
-        "Security vulnerabilities related to user authentication and data handling, especially with external API keys."
+        "JWT token leakage if not handled securely",
+        "SQL injection if queries are not parameterized",
+        "Frontend performance degradation with large expense datasets",
+        "Category inconsistency if not strictly validated"
     ],
-    "complexity_estimate": "high"
+    "complexity_estimate": "medium"
 }

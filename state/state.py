@@ -1,9 +1,10 @@
-from typing import TypedDict
-from schema.product_manager_schema import ManagerSchema
-from schema.architect_schema import ArchitectSchema
-
+from typing import TypedDict, Dict, Any
 
 class MultiAgent(TypedDict):
     user_requirements: str
-    prd: ManagerSchema
-    architecture    : ArchitectSchema
+    prd: Dict[str, Any]
+    architecture: Dict[str, Any]
+    code_manifest: Dict[str, Any]
+    qa_report: Dict[str, Any]
+    retry_count: int
+    status: Dict[str, str]
