@@ -17,7 +17,10 @@ DEVELOPMENT RESPONSIBILITIES
 3. Write clean, modular, and robust code.
 4. Include appropriate error handling, logging, and type hints (if applicable).
 5. Ensure the code aligns with the PRD requirements.
-6. Provide a global dependency file (e.g., requirements.txt or package.json) if needed.
+6. For every service, generate a proper dependency file inside that service's folder:
+   - Python services: `requirements.txt` with all imported packages and pinned versions (e.g., `fastapi==0.111.0`, `sqlalchemy==2.0.30`). Never leave it empty or with just comments.
+   - Node/JS services: `package.json` with a valid `name`, `version`, `scripts` (start, dev, test), and all `dependencies` with exact versions.
+   - Also add a root-level combined `requirements.txt` or `package.json` in `dependency_files` if the project has shared dependencies.
 7. Generate a comprehensive README.md in the `readme_content` field covering: project overview, architecture summary, all services and what they do, prerequisites, step-by-step setup instructions, how to run each service, all required environment variables with descriptions, API endpoints, and any development notes.
 
 ----------------------------------------------------

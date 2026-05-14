@@ -1,14 +1,16 @@
 from dotenv import load_dotenv
-from langchain_cerebras import ChatCerebras
+from langchain_google_genai import ChatGoogleGenerativeAI
 import os 
 
 load_dotenv()
 
-llm = ChatCerebras(
-    model="qwen-3-235b-a22b-instruct-2507", 
-    temperature=0.2,
-    timeout=60 
-)
+llm = ChatGoogleGenerativeAI(
+        model="gemini-3-flash-preview",
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
+        temperature=0.2,
+        # Gemini handles retries well internally
+        max_retries=3 
+    )
 def get_structured_llm(schema):
     """
     Return an LLM configured to output a Pydantic schema.
@@ -17,4 +19,10 @@ def get_structured_llm(schema):
 
 def llm_call(prompt):
     response = llm.invoke(prompt)
-    return response.content
+    content = response.content
+    if isinstance(content, list):
+        content = "\n".join(
+            part.get("text", "") if isinstance(part, dict) else str(part)
+            for part in content
+        )
+    return content

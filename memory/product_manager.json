@@ -1,351 +1,281 @@
 {
-    "product_name": "ExpenseTrack",
-    "product_summary": "A simple web-based expense tracking application that allows users to log in, record expenses, and view basic financial reports.",
-    "problem_statement": "Individuals struggle to keep track of their daily expenses and lack visibility into their spending habits. There is a need for a lightweight, easy-to-use tool to log expenses and generate simple reports for personal financial awareness.",
+    "product_name": "SpendWise Expense Tracker",
+    "product_summary": "A lightweight web-based financial management tool that allows users to securely log daily expenditures, categorize transactions, and visualize spending habits through automated reports.",
+    "problem_statement": "Individuals often struggle to maintain a clear overview of their personal finances due to fragmented tracking methods. There is a need for a centralized, accessible, and simple interface to record expenses and analyze spending patterns over time.",
     "target_users": [
-        "Individuals managing personal finances",
-        "Freelancers tracking business expenses",
-        "Students monitoring spending"
+        "Individual consumers tracking personal budgets",
+        "Students managing monthly allowances",
+        "Freelancers tracking business-related costs"
     ],
     "success_metrics": [
-        "Number of active users logging expenses weekly",
+        "Daily Active Users (DAU) logging at least one expense",
         "Average number of expenses logged per user per week",
-        "Time to first expense entry after signup",
-        "User session duration"
+        "Retention rate after 30 days",
+        "Report generation frequency per user"
     ],
     "features": [
         {
             "name": "User Authentication",
-            "description": "Users can sign up, log in, and log out securely.",
+            "description": "Secure sign-up and login system using email and password.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "User can register with email and password",
-                "User can log in with valid credentials",
-                "Password is hashed and stored securely",
-                "Session is maintained after login",
-                "User can log out"
+                "User can create an account with a unique email.",
+                "User can log in and receive a secure session token (JWT).",
+                "Passwords must be hashed before storage."
             ]
         },
         {
-            "name": "Add Expense",
-            "description": "Users can add a new expense with amount, category, date, and optional notes.",
+            "name": "Expense Management",
+            "description": "Core CRUD functionality for tracking individual expenses.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "Form includes fields for amount, category, date, and notes",
-                "Expense is saved to the database",
-                "Date defaults to current date",
-                "Category is selected from a predefined list"
+                "User can add an expense with amount, date, category, and description.",
+                "User can view a list of their own expenses.",
+                "User can edit or delete an existing expense entry.",
+                "Expenses are private to the logged-in user."
             ]
         },
         {
-            "name": "View Expense List",
-            "description": "Users can view a list of their previously logged expenses.",
+            "name": "Expense Categorization",
+            "description": "System for organizing expenses into logical groups.",
             "priority": "high",
             "is_mvp": true,
             "acceptance_criteria": [
-                "List displays amount, category, date, and notes",
-                "Expenses are sorted by date (newest first)",
-                "Each expense can be edited or deleted"
+                "Pre-defined categories (Food, Transport, Rent, Utilities, Entertainment).",
+                "Ability to filter the expense list by category."
             ]
         },
         {
-            "name": "Edit/Delete Expense",
-            "description": "Users can modify or remove existing expenses.",
+            "name": "Spending Reports",
+            "description": "Visual and tabular summaries of spending data.",
             "priority": "medium",
             "is_mvp": true,
             "acceptance_criteria": [
-                "User can click edit to change expense details",
-                "User can delete an expense with confirmation",
-                "Changes are persisted in the database"
+                "Dashboard showing total spending for the current month.",
+                "Breakdown of spending by category (e.g., Pie chart).",
+                "Monthly trend view (e.g., Bar chart)."
             ]
         },
         {
-            "name": "Expense Reports",
-            "description": "Users can view aggregated reports by category and time period (e.g., weekly, monthly).",
-            "priority": "medium",
+            "name": "Data Export",
+            "description": "Allow users to download their data for external use.",
+            "priority": "low",
             "is_mvp": false,
             "acceptance_criteria": [
-                "Bar or pie chart shows spending by category",
-                "User can select time range",
-                "Total spending for period is displayed",
-                "Data is filtered to current user only"
-            ]
-        },
-        {
-            "name": "Responsive Web Interface",
-            "description": "Frontend is usable on desktop and mobile devices.",
-            "priority": "medium",
-            "is_mvp": true,
-            "acceptance_criteria": [
-                "UI renders correctly on mobile screens",
-                "Forms are accessible and easy to use on touch devices"
+                "User can export expense history to a CSV file."
             ]
         }
     ],
     "user_flows": [
         {
-            "name": "User Signup and Login",
+            "name": "Onboarding and First Entry",
             "actor": "New User",
             "steps": [
-                "Navigate to login page",
-                "Click 'Sign Up'",
-                "Enter email and password",
-                "Submit form",
-                "Receive confirmation email (optional)",
-                "Log in with credentials",
-                "Redirected to dashboard"
+                "Navigate to the landing page",
+                "Click Sign Up and enter credentials",
+                "Redirected to Dashboard",
+                "Click 'Add Expense'",
+                "Fill in amount and category",
+                "Save and see the updated dashboard"
             ],
             "related_features": [
-                "User Authentication"
+                "User Authentication",
+                "Expense Management"
             ]
         },
         {
-            "name": "Log a New Expense",
-            "actor": "Logged-in User",
+            "name": "Monthly Review",
+            "actor": "Returning User",
             "steps": [
-                "Navigate to 'Add Expense' page",
-                "Fill in amount, select category, confirm date, add notes",
-                "Click 'Save'",
-                "See confirmation",
-                "Redirected to expense list"
+                "Log in to the application",
+                "Navigate to the Reports section",
+                "Filter by 'Last Month'",
+                "Analyze the category breakdown chart",
+                "Identify high-spending categories"
             ],
             "related_features": [
-                "Add Expense"
-            ]
-        },
-        {
-            "name": "View Monthly Report",
-            "actor": "Logged-in User",
-            "steps": [
-                "Navigate to 'Reports' page",
-                "Select 'Monthly' view",
-                "Select month/year",
-                "View chart and totals",
-                "Interact with chart (optional)"
-            ],
-            "related_features": [
-                "Expense Reports"
+                "Spending Reports",
+                "Expense Categorization"
             ]
         }
     ],
     "modules": [
         {
-            "name": "Auth Module",
-            "responsibility": "Handles user registration, login, logout, and session management.",
+            "name": "Identity Module",
+            "responsibility": "Handles user registration, authentication, and session management.",
             "exposes": [
-                "/api/auth/signup",
-                "/api/auth/login",
-                "/api/auth/logout"
+                "registerUser",
+                "authenticateUser",
+                "validateToken"
             ],
             "depends_on": []
         },
         {
-            "name": "Expense Module",
-            "responsibility": "Manages creation, retrieval, update, and deletion of user expenses.",
+            "name": "Expense Core Module",
+            "responsibility": "Manages the lifecycle of expense records and category definitions.",
             "exposes": [
-                "/api/expenses",
-                "/api/expenses/:id"
+                "createExpense",
+                "getExpensesByUser",
+                "updateExpense",
+                "deleteExpense"
             ],
             "depends_on": [
-                "Auth Module"
+                "Identity Module"
             ]
         },
         {
-            "name": "Reporting Module",
-            "responsibility": "Generates aggregated expense data for visualization.",
+            "name": "Analytics Module",
+            "responsibility": "Aggregates raw expense data into meaningful statistics and chart-ready formats.",
             "exposes": [
-                "/api/reports/monthly",
-                "/api/reports/category"
+                "getMonthlySummary",
+                "getCategoryDistribution"
             ],
             "depends_on": [
-                "Expense Module"
+                "Expense Core Module"
             ]
         },
         {
-            "name": "Frontend UI Module",
-            "responsibility": "Provides responsive web interface for user interaction.",
-            "exposes": [
-                "/",
-                "/login",
-                "/expenses",
-                "/expenses/new",
-                "/reports"
-            ],
+            "name": "Web Frontend",
+            "responsibility": "Provides the user interface for interaction and data visualization.",
+            "exposes": [],
             "depends_on": [
-                "Auth Module",
-                "Expense Module",
-                "Reporting Module"
+                "Identity Module",
+                "Expense Core Module",
+                "Analytics Module"
             ]
         }
     ],
     "suggested_tech_stack": [
-        "Node.js with Express (backend)",
-        "PostgreSQL or SQLite (database)",
-        "React (frontend)",
-        "JWT for authentication",
-        "Chart.js for reports",
-        "Tailwind CSS or Bootstrap for styling"
+        "React.js (Frontend)",
+        "Node.js with Express (Backend)",
+        "PostgreSQL (Relational Database)",
+        "JWT (Authentication)",
+        "Chart.js or Recharts (Visualization)"
     ],
-    "expected_scale": "10k DAU at launch, 100k DAU in year 1",
+    "expected_scale": "10k DAU at launch, 100k total users in year 1",
     "data_entities": [
         {
             "name": "User",
-            "description": "Represents an application user.",
+            "description": "Represents a registered person in the system.",
             "key_attributes": [
-                "id",
-                "email",
-                "password_hash",
-                "created_at"
+                "id (UUID)",
+                "email (String, Unique)",
+                "password_hash (String)",
+                "created_at (Timestamp)"
             ],
             "relationships": [
-                "has many Expenses",
-                "has many Reports"
+                "One-to-Many with Expense"
             ]
         },
         {
             "name": "Expense",
-            "description": "Represents a single expense entry by a user.",
+            "description": "A single financial transaction recorded by a user.",
             "key_attributes": [
-                "id",
-                "user_id",
-                "amount",
-                "category",
-                "date",
-                "notes",
-                "created_at",
-                "updated_at"
+                "id (UUID)",
+                "user_id (FK)",
+                "amount (Decimal)",
+                "category_id (FK)",
+                "description (String)",
+                "transaction_date (Date)"
             ],
             "relationships": [
-                "belongs to User"
+                "Many-to-One with User",
+                "Many-to-One with Category"
             ]
         },
         {
-            "name": "Report",
-            "description": "Aggregated view of expenses over time or by category.",
+            "name": "Category",
+            "description": "A classification for expenses.",
             "key_attributes": [
-                "id",
-                "user_id",
-                "type",
-                "period",
-                "data",
-                "generated_at"
+                "id (Integer)",
+                "name (String)",
+                "icon_identifier (String)"
             ],
             "relationships": [
-                "belongs to User",
-                "derived from Expenses"
+                "One-to-Many with Expense"
             ]
         }
     ],
     "possible_apis": [
         {
             "method": "POST",
-            "path": "/api/auth/signup",
-            "description": "Register a new user",
+            "path": "/api/v1/auth/register",
+            "description": "Register a new user account.",
             "auth_required": false,
-            "related_module": "Auth Module"
+            "related_module": "Identity Module"
         },
         {
             "method": "POST",
-            "path": "/api/auth/login",
-            "description": "Authenticate user and return JWT",
+            "path": "/api/v1/auth/login",
+            "description": "Authenticate user and return JWT.",
             "auth_required": false,
-            "related_module": "Auth Module"
+            "related_module": "Identity Module"
         },
         {
             "method": "GET",
-            "path": "/api/expenses",
-            "description": "List all expenses for the current user",
+            "path": "/api/v1/expenses",
+            "description": "Retrieve a list of expenses for the authenticated user with optional filters.",
             "auth_required": true,
-            "related_module": "Expense Module"
+            "related_module": "Expense Core Module"
         },
         {
             "method": "POST",
-            "path": "/api/expenses",
-            "description": "Create a new expense",
+            "path": "/api/v1/expenses",
+            "description": "Create a new expense record.",
             "auth_required": true,
-            "related_module": "Expense Module"
-        },
-        {
-            "method": "PUT",
-            "path": "/api/expenses/:id",
-            "description": "Update an existing expense",
-            "auth_required": true,
-            "related_module": "Expense Module"
-        },
-        {
-            "method": "DELETE",
-            "path": "/api/expenses/:id",
-            "description": "Delete an expense",
-            "auth_required": true,
-            "related_module": "Expense Module"
+            "related_module": "Expense Core Module"
         },
         {
             "method": "GET",
-            "path": "/api/reports/monthly",
-            "description": "Get monthly expense summary",
+            "path": "/api/v1/reports/summary",
+            "description": "Get aggregated spending data for the dashboard.",
             "auth_required": true,
-            "related_module": "Reporting Module"
-        },
-        {
-            "method": "GET",
-            "path": "/api/reports/category",
-            "description": "Get spending breakdown by category",
-            "auth_required": true,
-            "related_module": "Reporting Module"
+            "related_module": "Analytics Module"
         }
     ],
     "functional_requirements": [
-        "User must be authenticated to access expense and report endpoints",
-        "All expense operations are scoped to the authenticated user",
-        "Expense category must be one of predefined values (e.g., Food, Transport, Utilities, Entertainment, Health)",
-        "Reports must be generated in real-time or with minimal delay",
-        "Frontend must validate form inputs before submission"
+        "The system must allow users to reset their passwords via email (Post-MVP).",
+        "The system must support decimal values for expense amounts (up to 2 decimal places).",
+        "The system must prevent users from accessing or modifying expenses belonging to other users.",
+        "The system must provide a default set of categories for all users."
     ],
     "non_functional_requirements": [
         {
             "category": "Performance",
-            "description": "API should respond within 500ms for 95% of requests under normal load",
-            "target_metric": "p95 < 500ms"
+            "description": "API response time for fetching expenses should be under 300ms.",
+            "target_metric": "300ms"
         },
         {
             "category": "Security",
-            "description": "Passwords must be hashed using bcrypt or equivalent",
-            "target_metric": null
+            "description": "All data in transit must be encrypted via TLS 1.2+.",
+            "target_metric": "100% encryption"
         },
         {
             "category": "Availability",
-            "description": "System should be available 99.9% of the time",
-            "target_metric": "99.9%"
-        },
-        {
-            "category": "Usability",
-            "description": "New users should be able to log first expense within 2 minutes of signup",
-            "target_metric": "Time to first expense < 2 min"
+            "description": "The application should maintain high availability.",
+            "target_metric": "99.9% uptime"
         }
     ],
     "constraints": [
-        "Must be a web-only application (no native mobile apps initially)",
-        "Must support modern browsers (Chrome, Firefox, Safari, Edge)",
-        "Must use open-source technologies"
+        "The application must be responsive and work on both desktop and mobile browsers.",
+        "The initial version will support only one currency (USD)."
     ],
     "assumptions": [
-        "Users have basic internet literacy",
-        "Users will access the app from personal devices",
-        "Initial user base will be tech-savvy early adopters",
-        "No multi-user household accounts initially"
+        "Users have a stable internet connection to access the web interface.",
+        "A relational database is preferred to ensure ACID compliance for financial data."
     ],
     "open_questions": [
-        "Should we support expense attachments (e.g., receipts)?",
-        "Should reports support export to CSV/PDF?",
-        "Should we include budgeting features in future?"
+        "Should users be allowed to create custom categories in the MVP?",
+        "Is multi-currency support required for the first release?",
+        "Do we need to support social logins (Google/GitHub) in the first phase?"
     ],
     "out_of_scope": [
-        "Bank account integration or automatic transaction import",
-        "Multi-user teams or shared expenses",
-        "Mobile push notifications",
-        "Offline mode"
+        "Native mobile applications (iOS/Android).",
+        "Bank account synchronization/Open Banking integration.",
+        "Budgeting/Goal setting features.",
+        "Shared accounts or group expense tracking."
     ],
     "complexity_estimate": "medium"
 }

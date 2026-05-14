@@ -111,6 +111,19 @@ def developer_agent(state: MultiAgent):
                     "description": file.get("description", "")
                 })
 
+    # Write dependency files (requirements.txt, package.json, etc.) to service dirs or root
+    for dep_file in developer_dict.get("dependency_files", []):
+        file_path = dep_file.get("file_path", "")
+        if not file_path:
+            continue
+        if file_path.startswith('/'):
+            file_path = file_path[1:]
+        full_path = os.path.join(base_dir, file_path)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(dep_file.get("code", ""))
+        print(f"✅ Saved dependency file to {full_path}")
+
     # Write README.md to the root of outputs/source_code
     readme_content = developer_dict.get("readme_content", "")
     if readme_content:
