@@ -1,142 +1,135 @@
-import os
-import traceback
-from langchain_core.exceptions import OutputParserException
+from __future__ import annotations
 
+from typing import Any
+
+from agents.base import run_stage, workspace_for, write_document
+from core import manifest as manifest_util
+from core.config import Purpose
+from core.logging import bind, get_logger
+from core.paths import RunWorkspace, UnsafePathError
+from llm import registry
 from prompts.developer_json_prompt import get_developer_prompt
 from prompts.developer_pdf_prompt import get_developer_doc_prompt
-from utils.json_utils import save_llm_json
-from utils.llm_client import get_structured_llm, llm_call
-from state.state import MultiAgent
 from schema.developer_schema import DeveloperSchema
-from utils.pdf_util import save_to_pdf
-from utils.status_tracker import print_status_banner
+from state.state import AgentStatus, MultiAgent, Stage
+from utils.json_utils import save_json
+from utils.status_tracker import log_status, mark
 
-# Initialize the structured LLM
-developer_model = get_structured_llm(DeveloperSchema)
+logger = get_logger(__name__)
 
-def developer_agent(state: MultiAgent):
-    
-    # Update status to in progress
-    if "status" not in state:
-        state["status"] = {}
-    state["status"]["developer_agent"] = "IN_PROGRESS"
-    
-    # Increment retry count
-    retry_count = state.get("retry_count", 0) + 1
-    state["retry_count"] = retry_count
-    
-    print_status_banner(state)
+ARTIFACT_JSON = "developer.json"
+ARTIFACT_PDF = "developer.pdf"
 
-    user_input = state.get('user_requirements', '')
-    prd_json = state.get('prd', {})
-    architect_json = state.get('architecture', {})
-    qa_report = state.get('qa_report')
 
-    json_prompt = get_developer_prompt(user_input, prd_json, architect_json, qa_report)
-    
-    # ==========================================
-    # ERROR HANDLING BLOCK FOR JSON PARSING
-    # ==========================================
-    try:
-        json_response = developer_model.invoke(json_prompt)
-        developer_dict = json_response.model_dump()
-        
-    except (OutputParserException, ValueError) as e:
-        print(f"\n[ERROR] LLM failed to output valid JSON on attempt {retry_count}.")
-        print(f"Error details: {e}")
-        
-        # Mark status as failed so LangGraph can route it to a retry node/edge
-        state["status"]["developer_agent"] = "FAILED"
+async def developer_agent(state: MultiAgent) -> dict[str, Any]:
+    """Generate source code, or fix the code it generated last time.
+
+    On a retry the prompt carries three grounded evidence sources: compiler output
+    from the static gate, the QA bug list, and real pytest failures.
+    """
+    stage = Stage.DEVELOPER
+    attempt = state.get("retry_count", 0) + 1
+
+    async def body() -> dict[str, Any]:
+        workspace = workspace_for(state)
+
+        log_status({**state, "retry_count": attempt, "status": mark(state, stage, AgentStatus.IN_PROGRESS)})
+
+        static_report = state.get("static_report") or None
+        qa_report = state.get("qa_report") or None
+        verification_report = state.get("verification_report") or None
+
+        if attempt > 1:
+            logger.info("Fix attempt %d, applying reported failures", attempt)
+
+        model = registry.get_structured_llm(DeveloperSchema, Purpose.HEAVY)
+        response = await model.ainvoke(
+            get_developer_prompt(
+                state["user_requirements"],
+                state.get("prd") or {},
+                state.get("architecture") or {},
+                qa_report=qa_report,
+                static_report=static_report,
+                verification_report=verification_report,
+            )
+        )
+        output = response.model_dump(mode="json")
+
+        save_json(output, workspace.artifacts / ARTIFACT_JSON)
+
+        manifest = _write_code(output, workspace, dict(state.get("code_manifest") or {}))
+
+        await write_document(
+            get_developer_doc_prompt(state["user_requirements"], output), workspace, ARTIFACT_PDF
+        )
+
+        logger.info(
+            "Wrote %d file(s) across %d service(s)",
+            manifest_util.file_count(manifest),
+            len(manifest_util.services(manifest)),
+        )
         return {
-            "status": state["status"],
-            "retry_count": retry_count
+            "code_manifest": manifest,
+            "retry_count": attempt,
+            # Stale evidence must be cleared so the routers judge only the fresh code.
+            "static_report": {},
+            "verification_report": {},
         }
-    except Exception as e:
-        print(f"\n[CRITICAL ERROR] Unexpected failure in developer_agent: {e}")
-        traceback.print_exc()
-        state["status"]["developer_agent"] = "FAILED"
-        return {
-            "status": state["status"],
-            "retry_count": retry_count
-        }
-    # ==========================================
 
-    # Save the successful JSON response
-    save_llm_json(developer_dict, "developer_agent.json", folder="memory")
+    with bind(run_id=state.get("run_id"), stage=stage.value):
+        update = await run_stage(state, stage, body)
+        # Even on failure the attempt has been spent; recording it keeps the retry
+        # cap honest instead of letting a failing node loop forever.
+        update.setdefault("retry_count", attempt)
+        return update
 
-    # Generate PDF
-    pdf_prompt = get_developer_doc_prompt(user_input, developer_dict)
-    pdf_response = llm_call(pdf_prompt)
-    save_to_pdf(pdf_response, "developer_doc.pdf", folder="memory")
 
-    # Write files to outputs/source_code and build manifest
-    base_dir = "outputs/source_code"
-    os.makedirs(base_dir, exist_ok=True)
-    
-    # We will update the manifest, not overwrite it, so files from previous 
-    # runs aren't lost if they weren't regenerated this time.
-    manifest = state.get("code_manifest", {})
+def _write_code(
+    output: dict[str, Any],
+    workspace: RunWorkspace,
+    manifest: dict[str, Any],
+) -> dict[str, Any]:
+    rejected = 0
 
-    for service in developer_dict.get("services", []):
-        service_name = service.get("service_name", "unnamed_service")
-        service_dir = os.path.join(base_dir, service_name)
-        os.makedirs(service_dir, exist_ok=True)
-        
-        for file in service.get("files", []):
+    for service in output.get("services") or []:
+        service_name = service.get("service_name") or "unnamed-service"
+
+        for file in service.get("files") or []:
             file_path = file.get("file_path")
             if not file_path:
                 continue
-            
-            # Remove any leading slashes to prevent absolute path issues
-            if file_path.startswith('/'):
-                file_path = file_path[1:]
-                
-            full_path = os.path.join(service_dir, file_path)
-            
-            # Create directories if they don't exist
-            os.makedirs(os.path.dirname(full_path), exist_ok=True)
-            
-            with open(full_path, "w", encoding="utf-8") as f:
-                f.write(file.get("code", ""))
-                
-            # Add to manifest
-            if service_name not in manifest:
-                manifest[service_name] = []
-            
-            # Avoid duplicates in manifest
-            existing_files = [m["file_path"] for m in manifest[service_name]]
-            if file_path not in existing_files:
-                manifest[service_name].append({
-                    "file_path": file_path,
-                    "description": file.get("description", "")
-                })
+            try:
+                workspace.write_source_file(service_name, file_path, file.get("code") or "")
+            except UnsafePathError as exc:
+                rejected += 1
+                logger.warning("Rejected generated file path: %s", exc)
+                continue
 
-    # Write dependency files (requirements.txt, package.json, etc.) to service dirs or root
-    for dep_file in developer_dict.get("dependency_files", []):
-        file_path = dep_file.get("file_path", "")
+            manifest_util.add_file(
+                manifest,
+                service_name,
+                file_path,
+                description=file.get("description", ""),
+                language=file.get("language", ""),
+            )
+
+    for dependency in output.get("dependency_files") or []:
+        file_path = dependency.get("file_path")
         if not file_path:
             continue
-        if file_path.startswith('/'):
-            file_path = file_path[1:]
-        full_path = os.path.join(base_dir, file_path)
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
-        with open(full_path, "w", encoding="utf-8") as f:
-            f.write(dep_file.get("code", ""))
-        print(f"✅ Saved dependency file to {full_path}")
+        try:
+            written = workspace.write_shared_source_file(file_path, dependency.get("code") or "")
+        except UnsafePathError as exc:
+            rejected += 1
+            logger.warning("Rejected dependency file path: %s", exc)
+            continue
+        logger.info("Wrote dependency file %s", workspace.relative(written))
 
-    # Write README.md to the root of outputs/source_code
-    readme_content = developer_dict.get("readme_content", "")
-    if readme_content:
-        readme_path = os.path.join(base_dir, "README.md")
-        with open(readme_path, "w", encoding="utf-8") as f:
-            f.write(readme_content)
-        print(f"✅ Saved README.md to {readme_path}")
+    readme = output.get("readme_content") or ""
+    if readme.strip():
+        workspace.write_shared_source_file("README.md", readme)
 
-    # Update status to completed
-    state["status"]["developer_agent"] = "COMPLETED"
+    if rejected:
+        logger.warning("Discarded %d generated path(s) that tried to escape the workspace", rejected)
 
-    return {
-        "code_manifest": manifest,
-        "retry_count": retry_count,
-        "status": state["status"]
-    }
+    return manifest

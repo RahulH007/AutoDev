@@ -1,13 +1,12 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
-from enum import Enum
 
+from schema.enums import LenientStrEnum
 
 # ─────────────────────────────────────────────
 # Architecture Style
 # ─────────────────────────────────────────────
 
-class ArchitectureStyle(str, Enum):
+class ArchitectureStyle(LenientStrEnum):
     MONOLITH = "monolith"
     MODULAR_MONOLITH = "modular_monolith"
     MICROSERVICES = "microservices"
@@ -22,8 +21,8 @@ class APIEndpoint(BaseModel):
     method: str
     path: str
     description: str
-    request_body: Optional[str] = None
-    response: Optional[str] = None
+    request_body: str | None = None
+    response: str | None = None
     auth_required: bool = True
 
 
@@ -34,7 +33,7 @@ class APIEndpoint(BaseModel):
 class DataModel(BaseModel):
     name: str
     description: str
-    fields: List[str]
+    fields: list[str]
 
 
 # ─────────────────────────────────────────────
@@ -49,21 +48,21 @@ class Service(BaseModel):
         ..., description="Responsibility of the service"
     )
 
-    tech_stack: List[str] = Field(
+    tech_stack: list[str] = Field(
         ..., description="Technologies used in the service"
     )
 
-    dependencies: List[str] = Field(
+    dependencies: list[str] = Field(
         default_factory=list,
         description="Other services this service depends on"
     )
 
-    api_endpoints: List[APIEndpoint] = Field(
+    api_endpoints: list[APIEndpoint] = Field(
         default_factory=list,
         description="API endpoints exposed by the service"
     )
 
-    data_models: List[DataModel] = Field(
+    data_models: list[DataModel] = Field(
         default_factory=list,
         description="Database models used by the service"
     )
@@ -84,7 +83,7 @@ class Database(BaseModel):
 
     purpose: str
 
-    entities: List[str]
+    entities: list[str]
 
 
 # ─────────────────────────────────────────────
@@ -109,7 +108,7 @@ class EnvironmentVariable(BaseModel):
 
     name: str
     description: str
-    example: Optional[str] = None
+    example: str | None = None
 
 
 # ─────────────────────────────────────────────
@@ -120,11 +119,11 @@ class ProjectStructure(BaseModel):
 
     service_name: str
 
-    folders: List[str] = Field(
+    folders: list[str] = Field(
         ..., description="List of folders that must exist"
     )
 
-    key_files: List[str] = Field(
+    key_files: list[str] = Field(
         ..., description="Important files developer must implement"
     )
 
@@ -148,13 +147,13 @@ class DockerService(BaseModel):
 
     name: str
     image_or_build: str
-    ports: List[str] = Field(default_factory=list)
-    depends_on: List[str] = Field(default_factory=list)
+    ports: list[str] = Field(default_factory=list)
+    depends_on: list[str] = Field(default_factory=list)
 
 
 class DockerCompose(BaseModel):
 
-    services: List[DockerService]
+    services: list[DockerService]
 
 
 # ─────────────────────────────────────────────
@@ -169,46 +168,46 @@ class ArchitectSchema(BaseModel):
 
     architecture_style: ArchitectureStyle
 
-    services: List[Service] = Field(
+    services: list[Service] = Field(
         ..., description="Core services to implement"
     )
 
-    databases: List[Database] = Field(
+    databases: list[Database] = Field(
         default_factory=list,
         description="Databases used in the system"
     )
 
-    external_integrations: List[ExternalIntegration] = Field(
+    external_integrations: list[ExternalIntegration] = Field(
         default_factory=list,
         description="Third party APIs or services"
     )
 
-    environment_variables: List[EnvironmentVariable] = Field(
+    environment_variables: list[EnvironmentVariable] = Field(
         default_factory=list,
         description="Required environment variables"
     )
 
-    project_structure: List[ProjectStructure] = Field(
+    project_structure: list[ProjectStructure] = Field(
         default_factory=list,
         description="Folder structure each service must follow"
     )
 
-    docker_compose: Optional[DockerCompose] = Field(
+    docker_compose: DockerCompose | None = Field(
         default=None,
         description="Local docker compose deployment config"
     )
 
-    implementation_tasks: List[ImplementationTask] = Field(
+    implementation_tasks: list[ImplementationTask] = Field(
         default_factory=list,
         description="Tasks developer agents should execute"
     )
 
-    development_notes: List[str] = Field(
+    development_notes: list[str] = Field(
         default_factory=list,
         description="Important notes for developers"
     )
 
-    risks: List[str] = Field(
+    risks: list[str] = Field(
         default_factory=list,
         description="Technical risks in the architecture"
     )

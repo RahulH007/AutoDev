@@ -1,0 +1,218 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * One ramp, no hue.
+ *
+ * The loudest thing the console can do is invert: black on white in a dark
+ * room, white on black in a light one. That inversion is spent in exactly one
+ * place per screen — the primary action — and nothing else is allowed to
+ * approach it. Everything else lives between --panel and --muted.
+ */
+
+:root {
+  --ink: #fbfbfa;
+  --panel: #ffffff;
+  --panel-2: #f6f6f8;
+  --line: rgba(10, 10, 12, 0.1);
+  --line-strong: rgba(10, 10, 12, 0.18);
+  --text: #0a0a0c;
+  --muted: #6b6b75;
+  --muted-soft: #9a9aa5;
+  --invert-bg: #0a0a0c;
+  --invert-text: #ffffff;
+  --shadow-card: 0 1px 2px rgba(12, 12, 20, 0.05), 0 6px 20px rgba(12, 12, 20, 0.06);
+
+  /* Kept for the pages written before this direction. */
+  --bg: var(--ink);
+  --surface: var(--panel);
+  --surface-2: var(--panel-2);
+  --border: var(--line);
+  --border-strong: var(--line-strong);
+  --text-primary: var(--text);
+  --text-secondary: var(--muted);
+  --brand: #55555e;
+  --brand-light: #9a9aa5;
+}
+
+.dark {
+  --ink: #08080a;
+  --panel: #0f0f13;
+  --panel-2: #16161b;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.15);
+  --text: #fafafa;
+  --muted: #8a8a94;
+  --muted-soft: #62626c;
+  --invert-bg: #ffffff;
+  --invert-text: #0a0a0c;
+  --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.4), 0 6px 22px rgba(0, 0, 0, 0.28);
+
+  --brand: #c3c3cb;
+  --brand-light: #ededf0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--ink);
+  color: var(--text);
+  font-family: "Inter", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus: visible, monochrome, and never removed. */
+:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-soft);
+}
+
+::selection {
+  background: var(--text);
+  color: var(--ink);
+}
+
+/* ── Surfaces ──────────────────────────────────────────────────── */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.glass {
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+}
+
+.glass-strong {
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--line-strong);
+}
+
+/* Utilities kept by name so older pages keep working, now without hue. */
+.gradient-text,
+.gradient-text-warm {
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    color-mix(in srgb, var(--text) 55%, var(--muted)) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.shimmer-btn {
+  background: var(--invert-bg);
+  color: var(--invert-text);
+}
+
+.glow-border {
+  position: relative;
+}
+.glow-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--line-strong), transparent 60%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ── The stage track ───────────────────────────────────────────── */
+/*
+ * The signature device. A run is a walk through six named stages, so its
+ * position in that walk is the single most useful thing to show — and in a
+ * system with no colour, a filled-vs-hollow track reads faster than any badge.
+ */
+
+.track-seg {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition:
+    background-color 0.25s ease,
+    opacity 0.25s ease;
+}
+.track-seg[data-state="done"] {
+  background: var(--muted);
+}
+.track-seg[data-state="current"] {
+  background: var(--text);
+}
+.track-seg[data-state="failed"] {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--text) 0 3px,
+    transparent 3px 6px
+  );
+}
+
+/* The track on an inverted surface, where --text would vanish into the card. */
+.track-invert .track-seg {
+  background: color-mix(in srgb, var(--invert-text) 20%, transparent);
+}
+.track-invert .track-seg[data-state="done"] {
+  background: color-mix(in srgb, var(--invert-text) 55%, transparent);
+}
+.track-invert .track-seg[data-state="current"] {
+  background: var(--invert-text);
+}

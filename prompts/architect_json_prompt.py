@@ -1,12 +1,7 @@
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
-
-def get_architect_prompt(user_requirements: str, prd_json: str):
-
-    prompt_template = ChatPromptTemplate.from_messages([
-
-        SystemMessage(content="""
+SYSTEM_PROMPT = """
 You are a Principal Software Architect working in an AI-powered autonomous software development system.
 
 Your responsibility is to convert product requirements into a **complete system architecture** that will be used by Developer Agents to implement the project.
@@ -185,22 +180,59 @@ RULES
 • Do NOT include explanations outside JSON  
 • Do NOT invent features not present in the PRD  
 • Architecture must be detailed enough for Developer Agents to implement immediately
-"""),
+"""
 
+
+REVISION_INSTRUCTIONS = """You previously produced a system architecture for the user. The user has reviewed it and provided revision feedback below.
+
+Produce a REVISED architecture that:
+- Addresses every point in the user's feedback explicitly.
+- Preserves the parts of the previous architecture that the feedback did not contradict.
+- Stays consistent with the PRD and the original user requirement.
+- Is complete on its own (do not output a diff - output the full revised architecture)."""
+
+
+def get_architect_prompt(user_requirements: str, prd_json, previous_architecture: dict | None = None, feedback: str = ""):
+    is_revision = bool(feedback) and bool(previous_architecture)
+
+    system_content = SYSTEM_PROMPT
+    if is_revision:
+        system_content = SYSTEM_PROMPT + "\n\n" + REVISION_INSTRUCTIONS
+
+    messages = [
+        SystemMessage(content=system_content),
         HumanMessagePromptTemplate.from_template("""
 USER REQUIREMENTS:
 {user_requirements}
 
 PRODUCT REQUIREMENTS DOCUMENT (PRD):
 {prd_json}
+"""),
+    ]
 
+    fmt = {
+        "user_requirements": user_requirements,
+        "prd_json": prd_json,
+    }
+
+    if is_revision:
+        messages.append(HumanMessagePromptTemplate.from_template("""
+PREVIOUS ARCHITECTURE (JSON):
+{previous_architecture}
+
+USER REVISION FEEDBACK:
+{feedback}
+
+Produce the full revised architecture that addresses the feedback.
+"""))
+        fmt["previous_architecture"] = previous_architecture
+        fmt["feedback"] = feedback
+    else:
+        messages.append(HumanMessagePromptTemplate.from_template("""
 Analyze the user requirements and the PRD.
 
 Design the complete system architecture following the required JSON format.
-""")
-    ])
+"""))
 
-    return prompt_template.format_messages(
-        user_requirements=user_requirements,
-        prd_json=prd_json
-    )
+    prompt_template = ChatPromptTemplate.from_messages(messages)
+    return prompt_template.format_messages(**fmt)

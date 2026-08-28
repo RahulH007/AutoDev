@@ -1,0 +1,29 @@
+# ── Orchestration ────────────────────────────────────────────────
+langgraph==1.0.10
+langgraph-checkpoint==4.1.1
+langgraph-checkpoint-sqlite==3.1.1
+langchain-core==1.4.0
+
+# ── LLM providers ────────────────────────────────────────────────
+# Gemini is the default; the others are selectable via LLM_PROVIDER
+# and used for the fallback chain in llm/registry.py.
+langchain-google-genai==4.2.1
+langchain-groq==1.1.2
+langchain-ollama==1.1.0
+langchain-openai==0.3.35
+langchain-cerebras==0.6.0
+
+# ── Config, validation, resilience ───────────────────────────────
+pydantic==2.12.5
+pydantic-settings==2.14.2
+python-dotenv==1.2.2
+tenacity==9.1.4
+
+# ── HTTP service ─────────────────────────────────────────────────
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
+sse-starlette==3.4.6
+aiosqlite==0.22.1
+
+# ── Artifact generation ──────────────────────────────────────────
+fpdf2==2.8.7

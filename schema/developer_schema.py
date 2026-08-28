@@ -1,5 +1,6 @@
+
 from pydantic import BaseModel, Field
-from typing import List, Optional
+
 
 class CodeFile(BaseModel):
     file_path: str = Field(..., description="Relative path including filename, e.g., 'app/main.py'")
@@ -10,20 +11,20 @@ class CodeFile(BaseModel):
 
 class ServiceCode(BaseModel):
     service_name: str = Field(..., description="Name of the service this code belongs to")
-    files: List[CodeFile] = Field(..., description="All source code files for this service")
+    files: list[CodeFile] = Field(..., description="All source code files for this service")
 
 class DeveloperSchema(BaseModel):
     project_name: str = Field(..., description="Name of the project")
-    services: List[ServiceCode] = Field(..., description="Code organized by service")
-    setup_instructions: List[str] = Field(
+    services: list[ServiceCode] = Field(..., description="Code organized by service")
+    setup_instructions: list[str] = Field(
         default_factory=list,
         description="Step-by-step instructions on how to set up and run the code locally"
     )
-    dependency_files: List[CodeFile] = Field(
+    dependency_files: list[CodeFile] = Field(
         default_factory=list,
         description="Global or shared dependency files (e.g., requirements.txt at the root)"
     )
-    development_notes: List[str] = Field(
+    development_notes: list[str] = Field(
         default_factory=list,
         description="Notes from the developer about implementation details or limitations"
     )

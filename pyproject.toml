@@ -1,0 +1,27 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 110
+extend-exclude = ["venv", "frontend", "runs", "outputs", "memory"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "PTH"]
+ignore = [
+    "E501",   # line length is handled by the formatter
+    "B008",   # FastAPI Depends() in defaults is idiomatic
+    "SIM108", # ternaries are not always more readable
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["agents", "core", "graph", "llm", "prompts", "schema", "server", "state", "utils", "verification"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]
+# Prompt bodies are markdown, where two trailing spaces is a deliberate line break.
+"prompts/*" = ["W291", "W293"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["ignore::DeprecationWarning"]
+addopts = "-q --strict-markers"

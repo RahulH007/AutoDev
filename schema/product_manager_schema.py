@@ -1,15 +1,15 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
-from enum import Enum
+
+from schema.enums import LenientStrEnum
 
 
-class Priority(str, Enum):
+class Priority(LenientStrEnum):
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
 
 
-class ComplexityLevel(str, Enum):
+class ComplexityLevel(LenientStrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -20,14 +20,14 @@ class Feature(BaseModel):
     description: str
     priority: Priority
     is_mvp: bool = False
-    acceptance_criteria: List[str] = Field(default_factory=list)
+    acceptance_criteria: list[str] = Field(default_factory=list)
 
 
 class DataEntity(BaseModel):
     name: str
     description: str
-    key_attributes: List[str] = Field(default_factory=list)
-    relationships: List[str] = Field(default_factory=list)
+    key_attributes: list[str] = Field(default_factory=list)
+    relationships: list[str] = Field(default_factory=list)
 
 
 class APIEndpoint(BaseModel):
@@ -35,27 +35,27 @@ class APIEndpoint(BaseModel):
     path: str
     description: str
     auth_required: bool = True
-    related_module: Optional[str] = None
+    related_module: str | None = None
 
 
 class UserFlow(BaseModel):
     name: str
     actor: str
-    steps: List[str]
-    related_features: List[str] = Field(default_factory=list)
+    steps: list[str]
+    related_features: list[str] = Field(default_factory=list)
 
 
 class Module(BaseModel):
     name: str
     responsibility: str
-    exposes: List[str] = Field(default_factory=list)
-    depends_on: List[str] = Field(default_factory=list)
+    exposes: list[str] = Field(default_factory=list)
+    depends_on: list[str] = Field(default_factory=list)
 
 
 class NonFunctionalRequirement(BaseModel):
     category: str
     description: str
-    target_metric: Optional[str] = None
+    target_metric: str | None = None
 
 
 class ManagerSchema(BaseModel):
@@ -64,38 +64,38 @@ class ManagerSchema(BaseModel):
     product_name: str
     product_summary: str
     problem_statement: str
-    target_users: List[str]
-    success_metrics: List[str] = Field(default_factory=list)
+    target_users: list[str]
+    success_metrics: list[str] = Field(default_factory=list)
 
     # ── Features ─────────────────────────────────────────────────────
-    features: List[Feature]
+    features: list[Feature]
 
     # ── User Flows ───────────────────────────────────────────────────
-    user_flows: List[UserFlow] = Field(default_factory=list)
+    user_flows: list[UserFlow] = Field(default_factory=list)
 
     # ── Architecture Hints ────────────────────────────────────────────
-    modules: List[Module]
-    suggested_tech_stack: List[str] = Field(default_factory=list)
-    expected_scale: Optional[str] = Field(
+    modules: list[Module]
+    suggested_tech_stack: list[str] = Field(default_factory=list)
+    expected_scale: str | None = Field(
         default=None,
         description="e.g. '10k DAU at launch, 1M DAU in year 1'"
     )
 
     # ── Data Layer ───────────────────────────────────────────────────
-    data_entities: List[DataEntity]
+    data_entities: list[DataEntity]
 
     # ── API Surface ──────────────────────────────────────────────────
-    possible_apis: List[APIEndpoint]
+    possible_apis: list[APIEndpoint]
 
     # ── Requirements ─────────────────────────────────────────────────
-    functional_requirements: List[str]
-    non_functional_requirements: List[NonFunctionalRequirement]
+    functional_requirements: list[str]
+    non_functional_requirements: list[NonFunctionalRequirement]
 
     # ── Constraints & Assumptions ─────────────────────────────────────
-    constraints: List[str]
-    assumptions: List[str]
+    constraints: list[str]
+    assumptions: list[str]
 
     # ── Handoff Metadata ──────────────────────────────────────────────
-    open_questions: List[str] = Field(default_factory=list)
-    out_of_scope: List[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    out_of_scope: list[str] = Field(default_factory=list)
     complexity_estimate: ComplexityLevel = ComplexityLevel.MEDIUM

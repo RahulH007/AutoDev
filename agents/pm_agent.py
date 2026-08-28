@@ -1,33 +1,54 @@
+from __future__ import annotations
+
+from typing import Any
+
+from agents.base import run_stage, workspace_for, write_document
+from core.config import Purpose
+from core.logging import bind, get_logger
+from llm import registry
 from prompts.pm_json_prompt import get_pm_prompt
 from prompts.pm_pdf_prompt import get_pm_doc_prompt
-from utils.json_utils import save_llm_json
-from utils.llm_client import get_structured_llm, llm_call
-from state.state import MultiAgent
 from schema.product_manager_schema import ManagerSchema
-from utils.pdf_util import save_to_pdf 
+from state.state import MultiAgent, Stage
+from utils.json_utils import save_json
+
+logger = get_logger(__name__)
+
+ARTIFACT_JSON = "product_manager.json"
+ARTIFACT_PDF = "product_manager.pdf"
 
 
-pm_model = get_structured_llm(ManagerSchema)
+async def pm_agent(state: MultiAgent) -> dict[str, Any]:
+    """Turn the raw requirement into a structured PRD.
 
-def pm_agent(state: MultiAgent):
+    On a revision pass the previous PRD and the reviewer's feedback are both fed
+    back in, so the model edits its own work instead of starting over.
+    """
+    stage = Stage.PM
 
-    user_input = state['user_requirements']
+    async def body() -> dict[str, Any]:
+        workspace = workspace_for(state)
+        requirement = state["user_requirements"]
+        feedback = (state.get("pm_feedback") or "").strip()
+        previous = state.get("prd") or None
 
-    prompt = get_pm_prompt(user_input)
+        if feedback:
+            logger.info("Revising the PRD from reviewer feedback")
 
-    json_response = pm_model.invoke(prompt)
+        model = registry.get_structured_llm(ManagerSchema, Purpose.STRUCTURED)
+        response = await model.ainvoke(get_pm_prompt(requirement, previous, feedback))
+        prd = response.model_dump(mode="json")
 
-    prd_dict = json_response.model_dump()
+        save_json(prd, workspace.artifacts / ARTIFACT_JSON)
+        await write_document(get_pm_doc_prompt(requirement, prd), workspace, ARTIFACT_PDF)
 
-    pdf_response = llm_call(get_pm_doc_prompt(user_input , prd_dict)  )
+        logger.info(
+            "PRD ready: %s with %d features",
+            prd.get("product_name", "(unnamed)"),
+            len(prd.get("features") or []),
+        )
+        # Clearing the feedback is what lets the review router stop looping.
+        return {"prd": prd, "pm_feedback": ""}
 
-    # save JSON
-    save_llm_json(prd_dict, "product_manager.json", folder="memory")
-
-    # save PDF
-    save_to_pdf(pdf_response, "product_manager.pdf", folder="memory") 
-
-    return {
-        "prd": prd_dict,
-    }
-
+    with bind(run_id=state.get("run_id"), stage=stage.value):
+        return await run_stage(state, stage, body)

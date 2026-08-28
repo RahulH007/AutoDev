@@ -1,6 +1,8 @@
 import json
+
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+
 
 def get_qa_doc_prompt(qa_json: dict) -> list:
     json_str = json.dumps(qa_json, indent=2)

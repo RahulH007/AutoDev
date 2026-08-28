@@ -1,9 +1,7 @@
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
-def get_pm_prompt(user_requirements: str) -> list:
-    prompt_template = ChatPromptTemplate.from_messages([
-        SystemMessage(content="""You are an experienced Product Manager working in an AI-powered autonomous software development team.
+SYSTEM_PROMPT = """You are an experienced Product Manager working in an AI-powered autonomous software development team.
 
 Your responsibility is to convert raw user requirements into a clear and structured Product Requirement Document (PRD) that will be used by downstream AI agents including the Software Architect, Developer Agents, QA Agents, and DevOps Agents.
 
@@ -29,13 +27,48 @@ Responsibilities:
 Output Rules:
 - Do NOT generate implementation code.
 - Focus on product and architecture requirements only.
-- Be specific and actionable — avoid vague statements.
+- Be specific and actionable - avoid vague statements.
 - Mark MVP features clearly.
-- Identify open questions that need stakeholder clarification."""),
-        HumanMessagePromptTemplate.from_template("""USER REQUIREMENT:
-{user_requirements}
+- Identify open questions that need stakeholder clarification."""
 
-Analyze the requirement above and produce a comprehensive PRD. Be thorough and specific.""")
-    ])
 
-    return prompt_template.format_messages(user_requirements=user_requirements)
+REVISION_INSTRUCTIONS = """You previously produced a PRD for the user's requirement. The user has reviewed it and provided revision feedback below.
+
+Produce a REVISED PRD that:
+- Addresses every point in the user's feedback explicitly.
+- Preserves any sections of the previous PRD that the feedback did not contradict.
+- Stays consistent with the original user requirement.
+- Is complete on its own (do not output a diff - output the full revised PRD)."""
+
+
+def get_pm_prompt(user_requirements: str, previous_prd: dict | None = None, feedback: str = "") -> list:
+    is_revision = bool(feedback) and bool(previous_prd)
+
+    system_content = SYSTEM_PROMPT
+    if is_revision:
+        system_content = SYSTEM_PROMPT + "\n\n" + REVISION_INSTRUCTIONS
+
+    messages = [
+        SystemMessage(content=system_content),
+        HumanMessagePromptTemplate.from_template(
+            "USER REQUIREMENT:\n{user_requirements}\n"
+        ),
+    ]
+
+    fmt = {"user_requirements": user_requirements}
+
+    if is_revision:
+        messages.append(HumanMessagePromptTemplate.from_template(
+            "PREVIOUS PRD (JSON):\n{previous_prd}\n\n"
+            "USER REVISION FEEDBACK:\n{feedback}\n\n"
+            "Produce the full revised PRD that addresses the feedback."
+        ))
+        fmt["previous_prd"] = previous_prd
+        fmt["feedback"] = feedback
+    else:
+        messages.append(HumanMessagePromptTemplate.from_template(
+            "Analyze the requirement above and produce a comprehensive PRD. Be thorough and specific."
+        ))
+
+    prompt_template = ChatPromptTemplate.from_messages(messages)
+    return prompt_template.format_messages(**fmt)

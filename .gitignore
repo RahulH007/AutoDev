@@ -1,5 +1,76 @@
-structure.txt
+# ── Secrets ──────────────────────────────────────────────────────
+# Every .env variant is ignored, then the templates are allowed back in.
+# The negation matters: without it `.env.example` would be swept up too and
+# nobody could set the project up from a fresh clone.
 .env
-git_command.txt
+.env.*
+!.env.example
+frontend/.env*
+!frontend/.env.local.example
+
+# ── Python ───────────────────────────────────────────────────────
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# python venv
+venv/
+.venv/
+env/
+
+# ── Generated artifacts ──────────────────────────────────────────
+# Repo root only: the frontend has its own app/runs and components/runs
+# directories that are real source.
+/runs/
+/outputs/
+/memory/
+
+# ── Local databases ──────────────────────────────────────────────
+/data/
+*.db
+*.sqlite
+*.sqlite3
+# SQLite sidecar files, which appear while the API is running.
+*.db-journal
+*.db-wal
+*.db-shm
+
+# ── Tooling caches ───────────────────────────────────────────────
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ── Frontend ─────────────────────────────────────────────────────
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/tsconfig.tsbuildinfo
+.eslintcache
+
+# ── Editors and IDEs ─────────────────────────────────────────────
+.cursor/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code keeps machine-specific overrides here; the shared
+# .claude/settings.json is meant to be committed.
+.claude/settings.local.json
+
+# ── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs ─────────────────────────────────────────────────────────
+*.log
+report.md
+CLAUDE.md
