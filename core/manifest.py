@@ -16,7 +16,7 @@ Shape::
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 from core.paths import slugify
@@ -51,6 +51,30 @@ def add_file(
 
     files.append(entry)
     return slug
+
+
+def remove_files(manifest: Manifest, service_name: str, file_paths: Iterable[str]) -> list[str]:
+    """Drop the named files from one service's entry.
+
+    Scoped to a single slug on purpose. Surgical regeneration replaces one
+    service and must be able to forget the files that service no longer has, but
+    a manifest-wide removal would be one typo away from forgetting another
+    service's work — so the only removal that exists names its service.
+
+    Returns the paths that were actually recorded and are now gone.
+    """
+    slug = slugify(service_name)
+    service = manifest.get(slug)
+    if not service:
+        return []
+
+    unwanted = set(file_paths)
+    kept = [entry for entry in service["files"] if entry.get("file_path") not in unwanted]
+    removed = [
+        entry["file_path"] for entry in service["files"] if entry.get("file_path") in unwanted
+    ]
+    service["files"] = kept
+    return removed
 
 
 def services(manifest: Manifest) -> list[str]:

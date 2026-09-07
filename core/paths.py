@@ -153,6 +153,50 @@ class RunWorkspace:
     def read_source_file(self, service_name: str, file_path: str) -> str:
         return safe_join(self.service_source(service_name), file_path).read_text(encoding="utf-8")
 
+    # ── Removing ─────────────────────────────────────────────────
+
+    def delete_source_file(self, service_name: str, file_path: str) -> bool:
+        """Delete one generated file from inside one service's directory.
+
+        The only deletion this workspace offers, and deliberately the narrowest
+        one that does the job: the base is the *service's* directory, so
+        `safe_join` refuses anything that would reach a sibling service, the run's
+        own artifacts, or anywhere outside the workspace — the same containment
+        every write already has, applied to the one operation that could not be
+        undone.
+
+        Empty parent directories are tidied away afterwards, stopping short of the
+        service root, so a reorganised service does not leave a shell of empty
+        folders behind. Returns whether a file was actually removed.
+        """
+        root = self.service_source(service_name)
+        target = safe_join(root, file_path)
+
+        if not target.is_file():
+            return False
+
+        target.unlink()
+        self._prune_empty_parents(target.parent, root)
+        return True
+
+    @staticmethod
+    def _prune_empty_parents(directory: Path, stop: Path) -> None:
+        """Remove directories left empty by a deletion, never passing ``stop``."""
+        stop = stop.resolve()
+        current = directory.resolve()
+
+        while current != stop and stop in current.parents:
+            try:
+                next(current.iterdir())
+                return  # not empty; nothing above it can be either
+            except StopIteration:
+                pass
+            except OSError:  # pragma: no cover - unreadable directory
+                return
+            parent = current.parent
+            current.rmdir()
+            current = parent
+
     def iter_source_files(self) -> Iterator[Path]:
         if not self.source.exists():
             return

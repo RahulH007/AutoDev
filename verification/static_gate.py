@@ -15,6 +15,7 @@ import sys
 from importlib.util import find_spec
 from pathlib import Path
 
+from core.contracts import check_contract
 from core.logging import get_logger
 from core.paths import RunWorkspace
 from schema.verification_schema import StaticCheck, StaticReport
@@ -40,12 +41,27 @@ def run_static_gate(
     workspace: RunWorkspace,
     services: list[str] | None = None,
     runner: Runner | None = None,
+    contract: dict | None = None,
+    manifest: dict | None = None,
 ) -> StaticReport:
-    """Parse-check every generated file in the workspace."""
+    """Parse-check every generated file in the workspace.
+
+    ``contract`` adds a second deterministic pass over the same code: the
+    architecture a human approved, reduced by :mod:`core.contracts` to the claims
+    a path lookup can settle. It runs here rather than as a node of its own
+    because it asks the same kind of question the parse checks ask — is this fact
+    about the generated code true — and answering it in the same report means a
+    violation reaches the developer through the machinery that already carries a
+    syntax error, with no second gate, no second router and no second retry
+    budget.
+
+    The order is checks first, then the contract, so the flattened failure list
+    reads compiler output before design mismatches.
+    """
     report = StaticReport()
     service_dirs = _service_dirs(workspace, services)
 
-    if not service_dirs:
+    if not service_dirs and not contract:
         report.ran = False
         report.checks.append(
             StaticCheck(
@@ -57,13 +73,19 @@ def run_static_gate(
         )
         return report
 
-    runner = runner or get_runner()
+    if service_dirs:
+        runner = runner or get_runner()
 
-    for service_dir in service_dirs:
-        service = service_dir.name
-        report.checks.append(_check_python_syntax(service, service_dir))
-        report.checks.append(_check_json(service, service_dir))
-        report.checks.append(_check_undefined_names(service, service_dir, runner))
+        for service_dir in service_dirs:
+            service = service_dir.name
+            report.checks.append(_check_python_syntax(service, service_dir))
+            report.checks.append(_check_json(service, service_dir))
+            report.checks.append(_check_undefined_names(service, service_dir, runner))
+
+    if contract:
+        # A service the architecture declared but nobody generated has no
+        # directory to check, so this is also the only pass that can notice it.
+        report.checks.extend(check_contract(contract, manifest, workspace))
 
     report.ran = True
     failures: list[str] = []

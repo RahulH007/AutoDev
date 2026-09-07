@@ -1,6 +1,8 @@
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
+from utils.json_utils import compact_json
+
 SYSTEM_PROMPT = """You are an experienced Product Manager working in an AI-powered autonomous software development team.
 
 Your responsibility is to convert raw user requirements into a clear and structured Product Requirement Document (PRD) that will be used by downstream AI agents including the Software Architect, Developer Agents, QA Agents, and DevOps Agents.
@@ -63,7 +65,7 @@ def get_pm_prompt(user_requirements: str, previous_prd: dict | None = None, feed
             "USER REVISION FEEDBACK:\n{feedback}\n\n"
             "Produce the full revised PRD that addresses the feedback."
         ))
-        fmt["previous_prd"] = previous_prd
+        fmt["previous_prd"] = compact_json(previous_prd)
         fmt["feedback"] = feedback
     else:
         messages.append(HumanMessagePromptTemplate.from_template(

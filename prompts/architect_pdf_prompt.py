@@ -1,12 +1,13 @@
-import json
 
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
+from utils.json_utils import compact_json
+
 
 def get_architecture_doc_prompt(user_requirements: str, prd_json: dict):
 
-    json_str = json.dumps(prd_json, indent=2)
+    json_str = compact_json(prd_json)
 
     prompt_template = ChatPromptTemplate.from_messages([
 

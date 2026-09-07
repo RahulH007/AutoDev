@@ -1,117 +1,83 @@
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
+from prompts.projections import (
+    architecture_preamble,
+    architecture_services,
+    prd_for_developer,
+)
+from utils.json_utils import compact_json
+
 BASE_INSTRUCTIONS = """
-You are a Senior Full-Stack Developer working in an AI-powered autonomous software development system.
+You are a senior full-stack developer. Convert the architecture into complete,
+production-ready source code. Every file must be fully implemented: no TODOs, no
+stubs, no placeholder logic.
 
-Your responsibility is to convert the system architecture document into complete, production-ready source code.
-Every file must be fully implemented — no TODOs, no stubs, no placeholder comments like "add logic here".
+SCOPE
+- Generate every file listed in `project_structure`, for every service.
+- Implement every feature in the PRD.
+- Clean, modular code with error handling, logging and type hints throughout.
 
-----------------------------------------------------
-DEVELOPMENT RESPONSIBILITIES
-----------------------------------------------------
+PATHS
+- `file_path` is relative to the service root, e.g. `app/main.py`. Never begin one
+  with `/`, a drive letter or `..` — such files are discarded.
+- Spell `service_name` exactly as the architecture does.
 
-1. Read the Architecture JSON carefully. Generate every file listed in `project_structure` for each service.
-2. Write clean, modular code following framework best practices.
-3. Include proper error handling, logging, and type hints throughout.
-4. Ensure all features from the PRD are fully implemented in the code.
-5. Generate dependency files per service AND a root-level combined file in `dependency_files`.
-6. Generate a full README.md in the `readme_content` field (see README section below).
+BACKEND (Python/FastAPI or equivalent)
+- One router file per domain (auth.py, expenses.py).
+- Pydantic models with validation for every request and response body.
+- Complete JWT auth: register, login, token generation, verification middleware.
+- Hash passwords with bcrypt; never store plaintext.
+- SQLAlchemy models with real relationships (ForeignKey, back_populates).
+- Scope every query to the authenticated user — one user must never read another's rows.
+- CORS configured for the frontend origin.
+- Errors as `{{"detail": "message"}}`, consistently.
+- Read config from the environment with `os.getenv` or pydantic-settings; no
+  hardcoded secrets, passwords or API keys. `DATABASE_URL` falls back to a local
+  SQLite file so the code runs without a database server.
 
-----------------------------------------------------
-FILE PATH RULES (STRICT)
-----------------------------------------------------
+FRONTEND (React or equivalent)
+- React Router with routes defined centrally; protected routes redirect to /login.
+- JWT in localStorage, sent as a Bearer token by an Axios interceptor.
+- Axios `baseURL` from `REACT_APP_API_URL`.
+- Reusable components, one per file, grouped by feature.
+- Handle loading and error states for every API call.
+- Login state via React Context or an auth hook.
+- Style with the CSS framework the architecture names (Tailwind, MUI) — never
+  unstyled HTML.
 
-• Every `file_path` must be RELATIVE to its service root, e.g. `app/main.py`.
-• Never start a path with `/`, a drive letter, or `..`. Such files are discarded.
-• Use the same `service_name` spelling that appears in the architecture document.
+TESTABILITY — an automated runner imports and executes this code
+- Business logic in importable modules, not inside route handlers.
+- No side effects at import time: no connections, no network calls.
+- Expose the app as a module-level `app` in each service's main module.
 
-----------------------------------------------------
-BACKEND STANDARDS (Python / FastAPI or equivalent)
-----------------------------------------------------
+FILES EVERY SERVICE NEEDS
+- `.env.example` listing every environment variable with a description, as a
+  CodeFile in that service's files.
+- Python: `requirements.txt` with every third-party import pinned, never empty.
+- Node: `package.json` with exact versions and start/build/test scripts.
+- `dependency_files` additionally carries the root-level combined file.
 
-• Split routes into separate router files per domain (e.g., auth.py, expenses.py).
-• Use Pydantic models for all request and response bodies with field validation.
-• Implement JWT authentication completely: register, login, token generation, token verification middleware.
-• Hash passwords with bcrypt — never store plaintext passwords.
-• Use SQLAlchemy models with proper relationships (ForeignKey, back_populates).
-• Scope every query to the authenticated user. A user must never read another user's rows.
-• Configure CORS to allow requests from the frontend origin.
-• Return consistent JSON error responses: `{"detail": "message"}` for all HTTP errors.
-• Read the database URL from the `DATABASE_URL` environment variable, defaulting to a local SQLite
-  file when it is unset, so the code is testable without a running database server.
-• Load all secrets and config from environment variables using `os.getenv` or pydantic-settings.
-• Include a `.env.example` file listing every required environment variable with a description.
+README (`readme_content`)
+Beyond the sections the schema names, include a one-paragraph description, setup
+in order (install, configure env, migrate, run), a full API reference giving the
+method, path, whether auth is required, request body and response for every
+endpoint, how to run in development, and troubleshooting for common failures.
 
-----------------------------------------------------
-FRONTEND STANDARDS (React or equivalent)
-----------------------------------------------------
-
-• Use React Router for all navigation — define routes in a central `App.js` or `routes.js`.
-• Implement protected routes: redirect unauthenticated users to /login.
-• Store the JWT token in localStorage and attach it as a Bearer token in every API request via an Axios interceptor.
-• Configure Axios with a `baseURL` pointing to the backend (use `REACT_APP_API_URL` env var).
-• Break UI into reusable components — one component per file, grouped by feature folder.
-• Handle all API loading and error states — show spinners while loading, user-friendly error messages on failure.
-• Use React Context or a dedicated auth hook to manage login state across the app.
-• Style with the CSS framework specified in the architecture (Tailwind, MUI, etc.) — no unstyled HTML.
-
-----------------------------------------------------
-TESTABILITY
-----------------------------------------------------
-
-Your code will be imported and executed by an automated test runner. Therefore:
-
-• Keep business logic in importable modules, not inside route handler bodies.
-• Never execute side effects (database connections, network calls) at module import time.
-• Expose the FastAPI application as a module-level `app` object in the service's main module.
-
-----------------------------------------------------
-DEPENDENCY FILE STANDARDS
-----------------------------------------------------
-
-• Python `requirements.txt`: every imported third-party package with a pinned version. Never leave it empty.
-• Node `package.json`: valid `name`, `version`, all `dependencies` and `devDependencies` with exact versions, and `scripts` for start/build/test.
-• Also include a `.env.example` as a CodeFile in the service's files list.
-
-----------------------------------------------------
-README STANDARDS (`readme_content` field)
-----------------------------------------------------
-
-The README must include:
-- Project name and one-paragraph description
-- Architecture overview (list of services and what each does)
-- Prerequisites (Node version, Python version, database, etc.)
-- Step-by-step setup for each service (clone -> install -> configure env -> migrate -> run)
-- All environment variables for each service with description and example value
-- Full API reference: method, path, auth required, request body, response for every endpoint
-- How to run in development mode
-- Common troubleshooting tips
-
-----------------------------------------------------
-ABSOLUTE RULES
-----------------------------------------------------
-
-• NO Dockerfiles or docker-compose — a deployment agent handles that.
-• NO pseudo-code, stubs, or placeholder implementations. Every function must have real logic.
-• NO hardcoded secrets, passwords, or API keys in code — always use environment variables.
-• Output MUST be valid JSON only — no markdown fences around the JSON.
+NEVER
+- Dockerfiles or docker-compose — a deployment agent handles those.
+- Pseudo-code, or a function whose body is not real logic.
 """
 
 FIX_INSTRUCTIONS = """
-----------------------------------------------------
-FIX MODE (CRITICAL)
-----------------------------------------------------
-
+FIX MODE
 Your previous attempt did not pass verification. The evidence below comes from
 actually compiling and running your code, not from opinion.
 
-YOUR TASK:
 1. Read every failure report carefully. Compiler errors and failing tests are facts; fix them first.
 2. Output ONLY the files that need to change. Do not regenerate files that were already correct.
 3. Apply every fix in the `suggested_fix` field of each reported bug.
@@ -203,10 +169,26 @@ def get_developer_prompt(
     user_requirements: str,
     prd_json: dict[str, Any],
     architect_json: dict[str, Any],
+    service: dict[str, Any] | None = None,
     qa_report: dict[str, Any] | None = None,
     static_report: dict[str, Any] | None = None,
     verification_report: dict[str, Any] | None = None,
 ) -> list:
+    """Build the developer prompt.
+
+    ``service`` narrows the call to one service from the architecture. The whole
+    project in one response needs about 8,200 output tokens, which cannot fit an
+    8,000 token-per-minute window at any prompt size; one service needs roughly
+    3,000-4,000 and does fit.
+
+    The three reports are rendered exactly as given. Callers may hand over the
+    whole project's, or the share `agents/attribution.py` attributes to this
+    service — the developer agent does the latter, so a service is no longer
+    shown another's compiler errors. Either way the evidence is built by
+    `build_failure_evidence` below, and a report with nothing in it renders as no
+    section at all, which is what turns an empty set of failures back into a
+    first-generation prompt.
+    """
     evidence = build_failure_evidence(qa_report, static_report, verification_report)
     is_fix = bool(evidence)
 
@@ -223,15 +205,23 @@ PRD:
 {prd_json}
 
 ARCHITECTURE:
-{architect_json}
+{architecture_preamble}
+
+SERVICES TO IMPLEMENT:
+{architecture_services}
 """
         ),
     ]
 
     format_kwargs: dict[str, Any] = {
         "user_requirements": user_requirements,
-        "prd_json": json.dumps(prd_json, indent=2, default=str),
-        "architect_json": json.dumps(architect_json, indent=2, default=str),
+        # The preamble is every-service context; the services are sent beside it
+        # so a later per-service pass can send one without reshaping anything.
+        "prd_json": compact_json(prd_for_developer(prd_json)),
+        "architecture_preamble": compact_json(architecture_preamble(architect_json)),
+        "architecture_services": compact_json(
+            [service] if service is not None else architecture_services(architect_json)
+        ),
     }
 
     if is_fix:

@@ -107,16 +107,31 @@ All settings live in `core/config.py` and can be set via `.env` or environment v
 | `RUNNER_BACKEND` | `local` | `local` subprocess execution (`docker` is a stub) |
 | `LLM_TOKENS_PER_MINUTE` | `12000` | Per-minute token ceiling the pipeline paces itself under |
 | `LLM_MAX_RETRIES` | `3` | Attempts for a *transient* failure; other failures get one |
+| `LLM_MAX_OUTPUT_TOKENS` | `4096` | Fallback ceiling on one completion; `0` uses the provider default |
+| `MAX_OUTPUT_HEAVY` | `4096` | Ceiling for one generated service |
+| `MAX_OUTPUT_STRUCTURED` | `3500` | Ceiling for a PRD, an architecture document or a QA review |
+| `MAX_OUTPUT_TEXT` | `2000` | Ceiling for the PDF prose |
+| `MAX_OUTPUT_CHEAP` | `1000` | Ceiling for QA file triage |
 | `LLM_RETRY_BACKOFF_SECONDS` | `2.0` | First retry wait, doubling, unless the provider names its own |
 | `LLM_RETRY_MAX_DELAY_SECONDS` | `60.0` | Cap on any single retry wait |
+| `GENERATE_PDFS` | `false` | Generate client-facing PDFs *during a run*; the console renders the same documents from JSON, and "Export PDF" works either way |
 | `MAX_DEVELOPER_RETRIES` | `3` | Cap on developer attempts before the graph ends |
 | `MIN_QUALITY_SCORE` | `7` | Lowest QA score per service that still passes |
 | `RUNS_DIR` | `runs` | Where per-run workspaces are written |
-| `CORS_ORIGINS` | `http://localhost:3000` | Origins allowed to call the API |
+| `CORS_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Extra origins allowed to call the API |
+| `CORS_ALLOW_LOOPBACK` | `true` | Allow the console on any loopback port |
 
 Models are chosen per *purpose* rather than per agent, so you can move spend to where it matters:
 `MODEL_HEAVY` (code generation), `MODEL_STRUCTURED` (PRD, architecture, QA), `MODEL_TEXT` (the PDF prose),
 and `MODEL_CHEAP` (QA file triage). See `.env.example` for the full list with defaults.
+
+The output ceiling is chosen the same way, and for a sharper reason than cost. Providers charge
+`prompt + max_completion_tokens` against the per-minute window, so the ceiling is spent whether the answer
+uses it or not: one global 4,096 means a QA triage call that returns a list of file paths holds half of an
+8,000 token window while it does so. `MAX_OUTPUT_HEAVY`, `MAX_OUTPUT_STRUCTURED`, `MAX_OUTPUT_TEXT` and
+`MAX_OUTPUT_CHEAP` size each purpose to what it actually returns, falling back to `LLM_MAX_OUTPUT_TOKENS`
+when unset. The resolved figure is both what the provider client is built with and what the budget
+reserves — a disagreement between those two is how a request the budget waved through came back as a 413.
 
 ### Staying inside the rate limit
 
@@ -210,8 +225,14 @@ the run that produced it. The script watches only the source packages. For produ
 `uvicorn server.app:app --port 8000`.
 
 The console points at `http://127.0.0.1:8000` by default. To change that, copy
-`frontend/.env.local.example` to `frontend/.env.local` and set `NEXT_PUBLIC_API_URL`. If you serve the
-console from somewhere other than `localhost:3000`, add that origin to `CORS_ORIGINS` in `.env`.
+`frontend/.env.local.example` to `frontend/.env.local` and set `NEXT_PUBLIC_API_URL`. Any loopback origin is accepted whatever port it
+lands on, so the console still reaches the API when Next.js moves it to 3001 because another dev
+server holds 3000. To serve the console from a non-loopback host, add that origin to `CORS_ORIGINS`.
+
+If the console reports the API is unreachable while the server is plainly running, check the server's
+first log lines for a `overrides the value in your .env file` warning: a setting exported in your
+shell beats `.env`, and the process keeps the value it was born with no matter how often you edit
+the file or restart from that same shell.
 
 | Route | Purpose |
 |---|---|

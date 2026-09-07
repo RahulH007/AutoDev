@@ -12,6 +12,24 @@ logger = get_logger(__name__)
 _FENCED = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL)
 
 
+def compact_json(data: Any) -> str:
+    """Serialise structured data for embedding in a prompt.
+
+    Every prompt that carries a PRD or an architecture document goes through
+    here, so the whole pipeline has one answer to "how does a document reach a
+    model". Pretty-printing spends real tokens on whitespace no model needs: on
+    one measured run, 468 tokens for a PRD and 765 for an architecture document,
+    against an 8,000 token-per-minute ceiling the developer stage had already
+    broken.
+
+    ``ensure_ascii=False`` keeps a non-ASCII character as itself rather than a
+    six-character escape, and ``default=str`` covers the Path and datetime values
+    a schema may carry. The content is identical either way; only the formatting
+    changes.
+    """
+    return json.dumps(data, separators=(",", ":"), default=str, ensure_ascii=False)
+
+
 def save_json(data: Any, path: Path) -> Path:
     """Write pretty-printed JSON, creating parent directories as needed.
 

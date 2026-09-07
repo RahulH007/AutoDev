@@ -29,6 +29,7 @@ from graph.checkpoint import open_checkpointer
 from server.db import open_database
 from server.models import (
     CreateRunRequest,
+    ExportResponse,
     FeedbackRequest,
     FileContent,
     FileListResponse,
@@ -142,6 +143,8 @@ async def get_run(request: Request, run_id: str) -> RunDetail:
         qa_report=state.get("qa_report") or {},
         static_report=state.get("static_report") or {},
         verification_report=state.get("verification_report") or {},
+        service_failures=state.get("service_failures") or {},
+        cost_report=state.get("cost_report") or {},
         artifacts=artifacts,
         has_zip=bool(record.zip_path) and Path(record.zip_path).is_file(),
     )
@@ -264,6 +267,29 @@ async def read_file(request: Request, run_id: str, file_path: str) -> FileConten
     )
 
 
+@router.post(
+    "/runs/{run_id}/artifacts/{kind}/pdf", response_model=ExportResponse, tags=["files"]
+)
+async def export_pdf(request: Request, run_id: str, kind: str) -> ExportResponse:
+    """Render a structured document as a PDF, because somebody asked for one.
+
+    The structured JSON is the canonical artifact and the console renders from it
+    directly, so this is an export rather than a step: nothing on screen waits on
+    it, and a run that is never exported is not missing anything.
+
+    Costs a model call the first time, and only the first time — an already
+    exported document is returned as it stands.
+    """
+    service = service_of(request)
+    name, generated = await service.export_pdf(run_id, kind)
+
+    return ExportResponse(
+        name=name,
+        generated=generated,
+        url=f"/api/runs/{run_id}/artifacts/{name}",
+    )
+
+
 @router.get("/runs/{run_id}/artifacts/{name}", tags=["files"])
 async def download_artifact(request: Request, run_id: str, name: str) -> FileResponse:
     service = service_of(request)
@@ -311,6 +337,10 @@ async def _missing_file(_: Request, exc: Exception) -> JSONResponse:
 
 # ── Assembly ─────────────────────────────────────────────────────
 
+# Any port, because the console's port is chosen by whatever else is running:
+# localhost, 127.0.0.1 and the IPv6 literal are three spellings of this machine.
+LOOPBACK_ORIGIN = r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$"
+
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
@@ -320,8 +350,8 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     for name in shadowed_env_keys():
         logger.warning(
             "%s is set in this process's environment and overrides the value in your .env file. "
-            "The environment value is the one in use. If you are seeing 401s, restart this "
-            "process from a shell where the variable is unset.",
+            "The environment value is the one in use, so editing .env will not change it. "
+            "Restart this process from a shell where the variable is unset.",
             name,
         )
 
@@ -352,9 +382,11 @@ def create_app() -> FastAPI:
         version="1.0.0",
         lifespan=lifespan,
     )
+    settings = get_settings()
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=get_settings().cors_origins,
+        allow_origins=settings.cors_origins,
+        allow_origin_regex=LOOPBACK_ORIGIN if settings.cors_allow_loopback else None,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

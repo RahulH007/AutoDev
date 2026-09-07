@@ -1,11 +1,12 @@
-import json
 
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
+from utils.json_utils import compact_json
+
 
 def get_developer_doc_prompt(user_requirements: str, developer_json: dict) -> list:
-    json_str = json.dumps(developer_json, indent=2)
+    json_str = compact_json(developer_json)
 
     prompt_template = ChatPromptTemplate.from_messages([
         SystemMessage(content="""

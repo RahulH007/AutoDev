@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -19,14 +19,24 @@ import {
   PrdDocument,
   isEmptyArtifact,
 } from "@/components/runs/ArtifactDocuments";
+import ExportPdfButton from "@/components/runs/ExportPdfButton";
 import FileExplorer from "@/components/runs/FileExplorer";
 import LiveLog from "@/components/runs/LiveLog";
 import PipelineStepper from "@/components/runs/PipelineStepper";
+import RawJson from "@/components/runs/RawJson";
 import ReviewPanel from "@/components/runs/ReviewPanel";
+import RunStatusBanner from "@/components/runs/RunStatusBanner";
 import ServiceManifest from "@/components/runs/ServiceManifest";
+import UsagePanel from "@/components/runs/UsagePanel";
 import VerificationPanel from "@/components/runs/VerificationPanel";
 import StatusPill from "@/components/ui/StatusDot";
-import { api, isActive, isAwaitingReview, type RunDetail } from "@/lib/api";
+import {
+  api,
+  isActive,
+  isAwaitingReview,
+  type RunDetail,
+  type RunEvent,
+} from "@/lib/api";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 const POLL_INTERVAL_MS = 3000;
@@ -49,13 +59,26 @@ export default function RunPage() {
 
   const [detail, setDetail] = useState<RunDetail | null>(null);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<Tab>("verification");
+  const [tab, setTab] = useState<Tab>("requirement");
   const [busy, setBusy] = useState(false);
+  const [latestEvent, setLatestEvent] = useState<RunEvent | null>(null);
+
+  // The opening tab is chosen once, from what the run has actually produced.
+  // Defaulting to Verification meant landing on an empty panel for most of a
+  // run's life; re-choosing on every poll would move the tab under the user.
+  const tabChosen = useRef(false);
+  const reviewRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
     try {
-      setDetail(await api.getRun(id));
+      const next = await api.getRun(id);
+      setDetail(next);
       setError("");
+
+      if (!tabChosen.current) {
+        tabChosen.current = true;
+        setTab(openingTab(next));
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load this run.");
     }
@@ -186,28 +209,24 @@ export default function RunPage() {
         </div>
       </div>
 
-      {run.error && (
-        <div className="mb-7 rounded-xl border-l-2 border-[var(--text)] bg-[var(--panel)] py-4 pl-4 pr-5 ring-1 ring-inset ring-[var(--line)]">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text)]" strokeWidth={2} />
-            <div className="min-w-0">
-              <p className="text-[13.5px] font-semibold text-[var(--text)]">
-                This run did not finish cleanly
-              </p>
-              <p className="mt-1 break-words font-mono text-[11.5px] leading-relaxed text-[var(--muted)]">
-                {run.error}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="mb-7">
+        <RunStatusBanner
+          run={run}
+          stages={detail.stages}
+          latestEvent={latestEvent}
+          hasZip={detail.has_zip}
+          onSeeReview={() =>
+            reviewRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+          }
+        />
+      </div>
 
       <div className="mb-7">
         <PipelineStepper stages={detail.stages} />
       </div>
 
       {isAwaitingReview(run.status) && (
-        <div className="mb-7">
+        <div className="mb-7" ref={reviewRef}>
           <ReviewPanel
             runId={run.id}
             status={run.status}
@@ -246,7 +265,12 @@ export default function RunPage() {
                   body="The PM agent writes this first. It appears here as soon as that stage finishes, and stays available for the rest of the run."
                 />
               ) : (
-                <ArtifactSheet>
+                <ArtifactSheet
+                  raw={detail.prd}
+                  action={
+                    <ExportPdfButton runId={run.id} kind="prd" existing={detail.artifacts} />
+                  }
+                >
                   <PrdDocument prd={detail.prd} variant="full" />
                 </ArtifactSheet>
               ))}
@@ -258,7 +282,16 @@ export default function RunPage() {
                   body="The architecture agent runs after the product brief is approved."
                 />
               ) : (
-                <ArtifactSheet>
+                <ArtifactSheet
+                  raw={detail.architecture}
+                  action={
+                    <ExportPdfButton
+                      runId={run.id}
+                      kind="architecture"
+                      existing={detail.artifacts}
+                    />
+                  }
+                >
                   <ArchitectureDocument architecture={detail.architecture} variant="full" />
                 </ArtifactSheet>
               ))}
@@ -270,6 +303,7 @@ export default function RunPage() {
                 staticReport={detail.static_report}
                 verification={detail.verification_report}
                 qa={detail.qa_report}
+                serviceFailures={detail.service_failures}
               />
             )}
             {tab === "files" && <FileExplorer runId={run.id} />}
@@ -285,7 +319,7 @@ export default function RunPage() {
             )}
           </div>
 
-          <LiveLog runId={run.id} onRunSettled={refresh} />
+          <LiveLog runId={run.id} onRunSettled={refresh} onLatestEvent={setLatestEvent} />
         </div>
 
         <aside className="space-y-4">
@@ -306,6 +340,8 @@ export default function RunPage() {
               )}
             </dl>
           </div>
+
+          <UsagePanel report={detail.cost_report} />
 
           {detail.artifacts.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel)]">
@@ -334,9 +370,32 @@ export default function RunPage() {
   );
 }
 
-function ArtifactSheet({ children }: { children: React.ReactNode }) {
+/**
+ * A structured document: the reading of it, then the thing itself.
+ *
+ * Three layers, in the order they are wanted. The rendered document is what the
+ * page is for. `raw` puts the canonical artifact one click away for anyone who
+ * needs to see exactly what the model produced. `action` — the PDF export — is
+ * deliberately the quietest of the three, because a PDF is a copy of what is
+ * already on the page rather than the way to read it.
+ *
+ * All three describe one object. Nothing here holds a second copy of it.
+ */
+function ArtifactSheet({
+  children,
+  action,
+  raw,
+}: {
+  children: React.ReactNode;
+  action?: React.ReactNode;
+  raw?: object;
+}) {
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5">{children}</div>
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5">
+      {action && <div className="mb-3 flex justify-end">{action}</div>}
+      {children}
+      {raw && <RawJson value={raw} />}
+    </div>
   );
 }
 
@@ -371,6 +430,23 @@ function codeSummary(detail: RunDetail) {
     0,
   );
   return `${services} svc · ${files} files`;
+}
+
+/**
+ * Open on the furthest thing the run has actually produced.
+ *
+ * Nothing is fabricated: each branch checks a payload the API already returned.
+ * A run that has produced nothing yet opens on its own requirement, which is
+ * the one panel that is never empty.
+ */
+function openingTab(detail: RunDetail): Tab {
+  if (detail.run.status === "awaiting_architecture_review") return "architecture";
+  if (detail.run.status === "awaiting_pm_review") return "brief";
+  if (detail.verification_report?.ran) return "verification";
+  if (Object.keys(detail.code_manifest ?? {}).length > 0) return "services";
+  if (!isEmptyArtifact(detail.architecture)) return "architecture";
+  if (!isEmptyArtifact(detail.prd)) return "brief";
+  return "requirement";
 }
 
 function isTerminalStatus(status: RunDetail["run"]["status"]) {

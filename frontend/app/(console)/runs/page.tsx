@@ -97,13 +97,22 @@ export default function RunsPage() {
   }, [runs, filter, query]);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
+    <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <div className="text-xs text-[var(--muted)] mb-1">Workspace / Console</div>
-          <h1 className="text-3xl font-bold text-[var(--text)] tracking-tight">Runs</h1>
-          <p className="text-[var(--muted)] text-sm mt-1.5">
-            Every code-generation run, live from the pipeline.
+          <h1 className="font-display text-[26px] font-bold tracking-tightest text-[var(--text)]">
+            Runs
+          </h1>
+          <p className="mt-1 max-w-xl text-[13.5px] text-[var(--muted)]">
+            Every run and how it ended, including the ones still going and the ones that
+            failed. The finished ones are also on{" "}
+            <a
+              href="/projects"
+              className="text-[var(--text)] underline-offset-2 transition-colors hover:underline"
+            >
+              Projects
+            </a>
+            .
           </p>
         </div>
 
@@ -117,7 +126,7 @@ export default function RunsPage() {
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-violet-600 hover:bg-violet-500 text-[var(--text)] text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--invert-bg)] px-4 py-2.5 text-[13.5px] font-semibold text-[var(--invert-text)] transition-opacity hover:opacity-90"
           >
             <Plus className="w-4 h-4" />
             New Run

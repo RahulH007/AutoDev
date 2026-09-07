@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from core import manifest as manifest_util
+from utils.json_utils import compact_json
 
 
 def get_qa_triage_prompt(
@@ -22,10 +22,10 @@ def get_qa_triage_prompt(
 bugs, security issues, or logic errors and therefore need a detailed read.
 
 PRODUCT REQUIREMENTS (abridged):
-{json.dumps({k: prd_json.get(k) for k in ("product_name", "features", "functional_requirements")}, indent=2, default=str)}
+{compact_json({k: prd_json.get(k) for k in ("product_name", "features", "functional_requirements")})}
 
 ARCHITECTURE (abridged):
-{json.dumps({k: architect_json.get(k) for k in ("architecture_style", "services")}, indent=2, default=str)}
+{compact_json({k: architect_json.get(k) for k in ("architecture_style", "services")})}
 
 FILE MANIFEST:
 {manifest_util.summarise(code_manifest)}
@@ -40,7 +40,7 @@ Prioritise:
 Deprioritise: static assets, styling, boilerplate entry points, and generated index files.
 
 Choose only from these exact paths:
-{json.dumps(known_paths, indent=2)}
+{compact_json(known_paths)}
 
 Return ONLY a valid JSON array of the paths you selected, copied exactly as written above.
 No markdown, no explanation, no trailing commentary.

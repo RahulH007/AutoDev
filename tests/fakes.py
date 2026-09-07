@@ -463,21 +463,31 @@ class LLMStub:
         stub = self._by_schema.get(schema)
         return stub.calls if stub else 0
 
-    def get_structured_llm(self, schema: type, purpose: Any = None, settings: Any = None) -> Any:
+    # ``**_extra`` absorbs the registry's optional keyword arguments -- ``demand``
+    # today, whatever comes next tomorrow. The stub stands in for the registry's
+    # *result*, not its sizing decisions, so a new knob there should never mean
+    # editing every test that installs this.
+    def get_structured_llm(
+        self, schema: type, purpose: Any = None, settings: Any = None, **_extra: Any
+    ) -> Any:
         if schema not in self._by_schema:
             raise AssertionError(
                 f"No canned response registered for {schema.__name__}. Call stub.set({schema.__name__}, ...)"
             )
         return self._by_schema[schema]
 
-    def get_text_llm(self, purpose: Any = None, settings: Any = None) -> Any:
+    def get_text_llm(self, purpose: Any = None, settings: Any = None, **_extra: Any) -> Any:
         raise AssertionError("Use llm_call / allm_call in tests rather than the raw text runnable")
 
-    def llm_call(self, prompt: Any, purpose: Any = None, settings: Any = None) -> str:
+    def llm_call(
+        self, prompt: Any, purpose: Any = None, settings: Any = None, **_extra: Any
+    ) -> str:
         self.text_prompts.append(prompt)
         return fake_text_response(prompt)
 
-    async def allm_call(self, prompt: Any, purpose: Any = None, settings: Any = None) -> str:
+    async def allm_call(
+        self, prompt: Any, purpose: Any = None, settings: Any = None, **_extra: Any
+    ) -> str:
         self.text_prompts.append(prompt)
         return fake_text_response(prompt)
 

@@ -16,7 +16,7 @@ import {
   SkeletonRows,
 } from "@/components/ui/Primitives";
 import { ApiError, api, isActive, type RunRecord } from "@/lib/api";
-import { groupIntoProjects } from "@/lib/projects";
+import { deliveredRuns } from "@/lib/deliverables";
 
 const POLL_INTERVAL_MS = 4000;
 const RECENT_PROJECTS = 4;
@@ -51,7 +51,7 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, [runs, refresh]);
 
-  const projects = useMemo(() => groupIntoProjects(runs ?? []), [runs]);
+  const delivered = useMemo(() => deliveredRuns(runs ?? []), [runs]);
 
   const start = async () => {
     const requirement = idea.trim();
@@ -82,9 +82,9 @@ export default function DashboardPage() {
       <section>
         <SectionHeader
           title="Recent projects"
-          count={runs ? projects.length : undefined}
+          count={runs ? delivered.length : undefined}
           action={
-            projects.length > RECENT_PROJECTS ? (
+            delivered.length > RECENT_PROJECTS ? (
               <Link
                 href="/projects"
                 className="inline-flex items-center gap-1 text-[12.5px] text-[var(--muted)] transition-colors hover:text-[var(--text)]"
@@ -98,15 +98,15 @@ export default function DashboardPage() {
 
         {!runs ? (
           <SkeletonRows rows={2} />
-        ) : projects.length === 0 ? (
+        ) : delivered.length === 0 ? (
           <EmptyState
-            title="No projects yet"
-            body="Runs started with the same name are grouped into a project, so you can see how an idea changed across attempts."
+            title="No finished projects yet"
+            body="A run lands here once it reaches the end of the pipeline with a codebase to show for it."
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            {projects.slice(0, RECENT_PROJECTS).map((project) => (
-              <ProjectCard key={project.name} project={project} />
+            {delivered.slice(0, RECENT_PROJECTS).map((run) => (
+              <ProjectCard key={run.id} run={run} />
             ))}
           </div>
         )}

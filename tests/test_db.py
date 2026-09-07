@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -191,6 +192,130 @@ class TestPersistence:
         await database.connect()
         await database.connect()
         await database.close()
+
+
+class TestMigrations:
+    """Opening a database written by an older AgentForge must upgrade it in place.
+
+    ``SCHEMA`` only ever runs CREATE TABLE IF NOT EXISTS, so a file that already
+    has a ``runs`` table keeps the one it has and would never gain a column. The
+    migration closes that gap, and must do so without touching a single row: a
+    user's run history is not something to recreate.
+    """
+
+    @staticmethod
+    def _legacy(path: Path) -> None:
+        """A ``runs`` table exactly as the release before the ledger wrote it."""
+        connection = sqlite3.connect(path)
+        connection.executescript(
+            """
+            CREATE TABLE runs (
+                id            TEXT PRIMARY KEY,
+                name          TEXT    NOT NULL,
+                requirement   TEXT    NOT NULL,
+                status        TEXT    NOT NULL,
+                current_stage TEXT    NOT NULL DEFAULT '',
+                retry_count   INTEGER NOT NULL DEFAULT 0,
+                qa_score      REAL,
+                workspace     TEXT    NOT NULL DEFAULT '',
+                zip_path      TEXT    NOT NULL DEFAULT '',
+                error         TEXT    NOT NULL DEFAULT '',
+                created_at    TEXT    NOT NULL,
+                updated_at    TEXT    NOT NULL,
+                finished_at   TEXT    NOT NULL DEFAULT ''
+            );
+            CREATE TABLE run_events (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id  TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+                ts      TEXT NOT NULL,
+                level   TEXT NOT NULL,
+                stage   TEXT NOT NULL DEFAULT '',
+                message TEXT NOT NULL
+            );
+            INSERT INTO runs (id, name, requirement, status, qa_score, created_at, updated_at)
+            VALUES ('old-run', 'Legacy', 'Build something.', 'completed', 8.5,
+                    '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');
+            INSERT INTO run_events (run_id, ts, level, message)
+            VALUES ('old-run', '2026-01-01T00:00:00Z', 'info', 'from the old version');
+            """
+        )
+        connection.commit()
+        connection.close()
+
+    async def test_an_older_database_gains_the_new_columns(self, tmp_path: Path):
+        path = tmp_path / "legacy.db"
+        self._legacy(path)
+
+        async with open_database(path) as database:
+            columns = await database.columns("runs")
+
+        assert {"total_calls", "total_tokens", "estimated_cost"} <= columns
+
+    async def test_the_existing_rows_are_untouched(self, tmp_path: Path):
+        path = tmp_path / "legacy.db"
+        self._legacy(path)
+
+        async with open_database(path) as database:
+            record = await database.get_run("old-run")
+            events = await database.list_events("old-run")
+
+        assert record is not None
+        assert record.name == "Legacy"
+        assert record.qa_score == 8.5
+        assert [event.message for event in events] == ["from the old version"]
+
+    async def test_rows_that_predate_the_columns_read_as_zero(self, tmp_path: Path):
+        """The NOT NULL default is what backfills a row written before the column."""
+        path = tmp_path / "legacy.db"
+        self._legacy(path)
+
+        async with open_database(path) as database:
+            record = await database.get_run("old-run")
+
+        assert record is not None
+        assert record.total_calls == 0
+        assert record.total_tokens == 0
+        assert record.estimated_cost is None
+
+    async def test_an_upgraded_database_accepts_the_new_fields(self, tmp_path: Path):
+        path = tmp_path / "legacy.db"
+        self._legacy(path)
+
+        async with open_database(path) as database:
+            updated = await database.update_run("old-run", total_calls=7, total_tokens=1234)
+
+        assert updated is not None
+        assert updated.total_calls == 7
+        assert updated.total_tokens == 1234
+
+    async def test_migrating_twice_changes_nothing(self, tmp_path: Path):
+        path = tmp_path / "legacy.db"
+        self._legacy(path)
+
+        async with open_database(path) as database:
+            first = await database.migrate()
+            second = await database.migrate()
+
+        # connect() already applied them, so even the first call here is a no-op.
+        assert first == []
+        assert second == []
+
+    async def test_a_fresh_database_needs_no_migration(self, tmp_path: Path):
+        async with open_database(tmp_path / "fresh.db") as database:
+            assert await database.migrate() == []
+            assert {"total_calls", "total_tokens", "estimated_cost"} <= await database.columns(
+                "runs"
+            )
+
+    async def test_a_legacy_database_still_takes_new_runs(self, tmp_path: Path):
+        path = tmp_path / "legacy.db"
+        self._legacy(path)
+
+        async with open_database(path) as database:
+            await database.create_run(make_run("new-run"))
+
+            assert await database.count_runs() == 2
+            assert (await database.get_run("new-run")) is not None
 
 
 class TestQualityScore:

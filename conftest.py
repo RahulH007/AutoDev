@@ -21,6 +21,10 @@ if str(ROOT) not in sys.path:
 _LEAKY_VARS = (
     "GOOGLE_API_KEY",
     "GROQ_API_KEY",
+    "GROQ_API_KEY_1",
+    "GROQ_API_KEY_2",
+    "GROQ_API_KEY_3",
+    "GROQ_API_KEY_4",
     "OPENAI_API_KEY",
     "CEREBRAS_API_KEY",
     "LLM_PROVIDER",
@@ -34,8 +38,27 @@ _LEAKY_VARS = (
     "AGENTFORGE_ENV_FILE",
     "LLM_TOKENS_PER_MINUTE",
     "LLM_OUTPUT_RESERVE",
+    "LLM_MAX_OUTPUT_TOKENS",
+    "MAX_OUTPUT_HEAVY",
+    "MAX_OUTPUT_STRUCTURED",
+    "MAX_OUTPUT_TEXT",
+    "MAX_OUTPUT_CHEAP",
     "LLM_RETRY_BACKOFF_SECONDS",
     "LLM_RETRY_MAX_DELAY_SECONDS",
+    "GENERATE_PDFS",
+    "ADAPTIVE_CEILINGS",
+    "ADAPTIVE_MIN_OUTPUT_TOKENS",
+    "ADAPTIVE_CEILING_BLOCK",
+    "ADAPTIVE_SERVICE_BASE_TOKENS",
+    "ADAPTIVE_SERVICE_FILE_TOKENS",
+    "ADAPTIVE_SERVICE_DECLARATION_TOKENS",
+    "ROUTING_ENABLED",
+    "ROUTING_LOW_MAX_SCORE",
+    "ROUTING_HIGH_MIN_SCORE",
+    "GROQ_MODEL_LOW",
+    "GROQ_MODEL_MEDIUM",
+    "GROQ_MODEL_HIGH",
+    "MAX_MODEL_ESCALATIONS",
 )
 
 
@@ -81,6 +104,22 @@ def isolated_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     reset_settings_cache()
     registry.reset_cache()
     reset_budgets()
+
+
+@pytest.fixture
+def with_pdfs(monkeypatch: pytest.MonkeyPatch):
+    """Turn client-facing PDF generation on.
+
+    It is off by default, in tests as in production, so a test that asserts on a
+    PDF has to say so. That keeps the default path — the one a real run takes —
+    the one most tests exercise.
+    """
+    from core.config import reset_settings_cache
+
+    monkeypatch.setenv("GENERATE_PDFS", "true")
+    reset_settings_cache()
+    yield
+    reset_settings_cache()
 
 
 @pytest.fixture

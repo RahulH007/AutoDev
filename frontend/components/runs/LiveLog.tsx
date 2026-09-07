@@ -22,10 +22,17 @@ const LEVEL_COLOR: Record<string, string> = {
 export default function LiveLog({
   runId,
   onRunSettled,
+  onLatestEvent,
 }: {
   runId: string;
   /** Fired when the server closes the stream, which means the run paused or ended. */
   onRunSettled?: () => void;
+  /**
+   * The newest event, so the page can show current activity without opening a
+   * second stream. Kept in a ref for the same reason as onRunSettled: the
+   * subscription must not be torn down when the parent re-renders.
+   */
+  onLatestEvent?: (event: RunEvent) => void;
 }) {
   const [events, setEvents] = useState<RunEvent[]>([]);
   const [connected, setConnected] = useState(false);
@@ -34,6 +41,8 @@ export default function LiveLog({
   const bottom = useRef<HTMLDivElement>(null);
   const settledRef = useRef(onRunSettled);
   settledRef.current = onRunSettled;
+  const latestRef = useRef(onLatestEvent);
+  latestRef.current = onLatestEvent;
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +57,8 @@ export default function LiveLog({
         if (cancelled) return;
         setEvents(history);
         lastId = history.at(-1)?.id ?? 0;
+        const newest = history.at(-1);
+        if (newest) latestRef.current?.(newest);
       } catch {
         /* the stream replays history too, so this is only a head start */
       }
@@ -58,12 +69,14 @@ export default function LiveLog({
       stop = streamEvents(
         runId,
         {
-          onEvent: (event) =>
+          onEvent: (event) => {
             setEvents((previous) =>
               previous.some((existing) => existing.id === event.id)
                 ? previous
                 : [...previous, event],
-            ),
+            );
+            latestRef.current?.(event);
+          },
           onEnd: () => {
             setConnected(false);
             settledRef.current?.();

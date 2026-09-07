@@ -52,6 +52,14 @@ BAD_KEY_401 = (
     "Error code: 401 - {'error': {'message': 'Invalid API Key', "
     "'type': 'invalid_request_error', 'code': 'invalid_api_key'}}"
 )
+# The real body from the architecture stage of run 9caeb0c9. Note it carries no
+# "Used" figure, so it is a size complaint rather than a usage report.
+TOO_LARGE_413 = (
+    "Error code: 413 - {'error': {'message': 'Request too large for model "
+    "qwen/qwen3.8-27b in organization org_01jcst service tier on_demand on tokens "
+    "per minute (TPM): Limit 8000, Requested 9200, please reduce your message size "
+    "and try again.', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
+)
 UPSTREAM_503 = (
     "Error code: 503 - {'error': {'message': 'Service Unavailable', "
     "'type': 'internal_server_error'}}"
@@ -178,6 +186,16 @@ class TestFatalErrors:
     def test_a_forbidden_response_aborts(self):
         assert classify(FakeAPIError("forbidden", 403)) is Disposition.ABORT
 
+    def test_a_request_too_large_aborts(self):
+        """Degrading makes it worse: every lower rung appends the schema to the
+        prompt, so the request that was already too big only grows."""
+        assert classify(Exception(TOO_LARGE_413)) is Disposition.ABORT
+
+    def test_a_413_is_not_mistaken_for_a_rate_limit(self):
+        """Its body says 'tokens per minute' and Groq tags it rate_limit_exceeded,
+        but waiting cannot shrink a request."""
+        assert classify(Exception(TOO_LARGE_413)) is not Disposition.RETRY
+
     def test_a_decommissioned_model_aborts(self):
         """Every rung names the same model, so degrading cannot help."""
         assert classify(Exception(DECOMMISSIONED_404)) is Disposition.ABORT
@@ -206,6 +224,10 @@ class TestRetryAfter:
 
     def test_a_wait_expressed_in_minutes_and_seconds_is_read(self):
         assert retry_after(Exception("Please try again in 1m30s.")) == pytest.approx(90.0)
+
+    def test_a_413_states_no_usage_so_nothing_is_adopted(self):
+        """It reports Limit and Requested but no Used, so it is not a usage report."""
+        assert reported_usage(Exception(TOO_LARGE_413)) is None
 
     def test_an_error_that_names_no_wait_returns_nothing(self):
         assert retry_after(Exception(TOOL_CHOICE_400)) is None
@@ -340,6 +362,32 @@ class TestRetrier:
             await make_retrier(sleep).run(call.acall)
 
         assert call.calls == 2
+
+
+class TestRateLimitPolicyIsUnchanged:
+    """Guards the 429 behaviour against the 413 change made alongside it."""
+
+    def test_a_429_is_still_retried(self):
+        assert classify(Exception(RATE_LIMIT_429)) is Disposition.RETRY
+
+    async def test_a_429_still_waits_the_interval_the_provider_named(self):
+        sleep = RecordingSleep()
+        call = Failing(Exception(RATE_LIMIT_429))
+
+        await make_retrier(sleep).run(call.acall)
+
+        assert call.calls == 2
+        assert sleep.waits == [pytest.approx(10.33)]
+
+    async def test_a_413_is_attempted_once_and_not_waited_on(self):
+        sleep = RecordingSleep()
+        call = Failing(Exception(TOO_LARGE_413), Exception(TOO_LARGE_413))
+
+        with pytest.raises(Exception, match="Request too large"):
+            await make_retrier(sleep).run(call.acall)
+
+        assert call.calls == 1
+        assert sleep.waits == []
 
 
 class TestRetrierBlocking:

@@ -12,10 +12,17 @@ import {
   SkeletonRows,
 } from "@/components/ui/Primitives";
 import { ApiError, api, isActive, type RunRecord } from "@/lib/api";
-import { groupIntoProjects } from "@/lib/projects";
+import { deliveredRuns } from "@/lib/deliverables";
 
 const POLL_INTERVAL_MS = 4000;
 
+/**
+ * Delivered work.
+ *
+ * Every card is one run, keyed by `run.id`. Runs are never combined — see
+ * `lib/deliverables.ts` for why grouping by name was wrong. /runs shows the
+ * full history; this shows only what finished and produced something.
+ */
 export default function ProjectsPage() {
   const [runs, setRuns] = useState<RunRecord[] | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -36,23 +43,27 @@ export default function ProjectsPage() {
     refresh();
   }, [refresh]);
 
+  // A run in flight may finish into this list, so keep polling while one is.
   useEffect(() => {
     if (!runs?.some((run) => isActive(run.status))) return;
     const timer = setInterval(refresh, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [runs, refresh]);
 
-  const projects = useMemo(() => groupIntoProjects(runs ?? []), [runs]);
+  const delivered = useMemo(() => deliveredRuns(runs ?? []), [runs]);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return projects;
-    return projects.filter(
-      (project) =>
-        project.name.toLowerCase().includes(needle) ||
-        project.latest.requirement.toLowerCase().includes(needle),
+    if (!needle) return delivered;
+    return delivered.filter(
+      (run) =>
+        run.name.toLowerCase().includes(needle) ||
+        run.requirement.toLowerCase().includes(needle) ||
+        run.id.startsWith(needle),
     );
-  }, [projects, query]);
+  }, [delivered, query]);
+
+  const unfinished = (runs?.length ?? 0) - delivered.length;
 
   return (
     <div className="space-y-6">
@@ -62,8 +73,15 @@ export default function ProjectsPage() {
             Projects
           </h1>
           <p className="mt-1 max-w-xl text-[13.5px] text-[var(--muted)]">
-            Runs are grouped by the name you gave them, so repeated attempts at one idea stay
-            together.
+            Runs that finished and produced a codebase. Everything else — in progress, awaiting
+            review, failed — is on{" "}
+            <a
+              href="/runs"
+              className="text-[var(--text)] underline-offset-2 transition-colors hover:underline"
+            >
+              Runs
+            </a>
+            .
           </p>
         </div>
         <Button onClick={refresh} variant="ghost" className="shrink-0">
@@ -96,24 +114,26 @@ export default function ProjectsPage() {
         <SkeletonRows rows={4} />
       ) : visible.length === 0 ? (
         <EmptyState
-          title={query ? "Nothing matches that" : "No projects yet"}
+          title={query ? "Nothing matches that" : "No finished projects yet"}
           body={
             query
-              ? "Try a different name, or clear the search to see everything."
-              : "Name a run when you start it and every later attempt at the same idea will collect here."
+              ? "Try a different word, or clear the search to see everything."
+              : unfinished > 0
+                ? `Nothing has completed yet. ${unfinished} run${unfinished === 1 ? " is" : "s are"} in progress or ended early — see Runs for what happened.`
+                : "A run appears here once it reaches the end of the pipeline with a codebase to show for it."
           }
           action={
             !query ? (
-              <ButtonLink href="/new" variant="primary">
-                Start a build
+              <ButtonLink href={unfinished > 0 ? "/runs" : "/new"} variant="primary">
+                {unfinished > 0 ? "Go to runs" : "Build a POC"}
               </ButtonLink>
             ) : undefined
           }
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {visible.map((project) => (
-            <ProjectCard key={project.name} project={project} />
+          {visible.map((run) => (
+            <ProjectCard key={run.id} run={run} />
           ))}
         </div>
       )}

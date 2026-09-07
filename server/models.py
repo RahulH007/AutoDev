@@ -89,6 +89,17 @@ class RunRecord(BaseModel):
     updated_at: str = Field(default_factory=utcnow)
     finished_at: str = ""
 
+    # Run-level model spending, settled once the run comes to rest. `total_tokens`
+    # is what the run reserved against the providers' per-minute windows -- the
+    # figure that decides whether it fits a rate limit, and the only one always
+    # available, since a structured response arrives with its usage stripped off.
+    # What the providers actually reported lives in `RunDetail.cost_report`, where
+    # it can honestly be null. `estimated_cost` stays null until there is a real
+    # pricing source to compute it from.
+    total_calls: int = 0
+    total_tokens: int = 0
+    estimated_cost: float | None = None
+
 
 # ── API request and response bodies ──────────────────────────────
 
@@ -121,6 +132,15 @@ class RunDetail(BaseModel):
     qa_report: dict = Field(default_factory=dict)
     static_report: dict = Field(default_factory=dict)
     verification_report: dict = Field(default_factory=dict)
+    # Which service each failure implicates, keyed by slug, plus an
+    # "_unattributed" bucket for evidence that names no service. Derived at the
+    # gates by agents/attribution.py; read-only, and empty before anything has
+    # been verified. See agents.attribution.UNATTRIBUTED.
+    service_failures: dict[str, list[str]] = Field(default_factory=dict)
+    # Model spending so far: totals plus a breakdown by stage and by
+    # provider:model. See llm/accounting.py for the shape. Empty for a run that
+    # has not made a model call, and for one checkpointed before it was recorded.
+    cost_report: dict = Field(default_factory=dict)
     artifacts: list[str] = Field(default_factory=list)
     has_zip: bool = False
 
@@ -146,6 +166,19 @@ class FileContent(BaseModel):
     path: str
     language: str
     content: str
+
+
+class ExportResponse(BaseModel):
+    """The result of an explicit PDF export.
+
+    ``generated`` says whether this request is what produced the file. A second
+    export of the same document returns the existing one with ``generated``
+    false, so re-opening the panel cannot quietly spend another model call.
+    """
+
+    name: str
+    generated: bool
+    url: str
 
 
 class HealthResponse(BaseModel):

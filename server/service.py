@@ -16,14 +16,18 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from agents.base import render_document
 from core.logging import add_handler, get_logger, remove_handler
 from core.paths import RunWorkspace, UnsafePathError, new_run_id, safe_join
 from graph.build_graph import build_workflow
+from llm.accounting import recording
+from prompts.architect_pdf_prompt import get_architecture_doc_prompt
+from prompts.pm_pdf_prompt import get_pm_doc_prompt
 from server.broker import EventBroker
 from server.db import Database, average_quality_score
 from server.models import (
@@ -34,7 +38,7 @@ from server.models import (
     RunStatus,
     utcnow,
 )
-from state.state import FEEDBACK_FIELD, Stage, initial_state
+from state.state import FEEDBACK_FIELD, AgentStatus, Stage, initial_state
 from utils.zip_util import zip_workspace
 
 logger = get_logger(__name__)
@@ -69,6 +73,34 @@ class FileEntry:
     path: str
     size: int
     is_generated_test: bool
+
+
+@dataclass(frozen=True)
+class ExportableDocument:
+    """A structured artifact that can also be handed over as a PDF.
+
+    Keyed on the graph state field rather than on the JSON file, because state is
+    what the console is already reading and the two cannot disagree. The prompt
+    builders are the same ones the agents use, so an exported document reads
+    exactly like an automatically generated one.
+    """
+
+    label: str
+    state_key: str
+    pdf_name: str
+    prompt: Callable[[str, dict[str, Any]], Any]
+
+
+EXPORTABLE: dict[str, ExportableDocument] = {
+    "prd": ExportableDocument(
+        label="product brief", state_key="prd", pdf_name="product_manager.pdf",
+        prompt=get_pm_doc_prompt,
+    ),
+    "architecture": ExportableDocument(
+        label="architecture", state_key="architecture", pdf_name="architecture.pdf",
+        prompt=get_architecture_doc_prompt,
+    ),
+}
 
 
 class _RunLogHandler(logging.Handler):
@@ -297,12 +329,16 @@ class RunService:
         if score is not None:
             fields["qa_score"] = score
 
+        fields.update(_cost_fields(values.get("cost_report")))
+
         # A PRD gives the run a better name than the truncated requirement.
         product_name = (values.get("prd") or {}).get("product_name")
         if product_name:
             fields["name"] = str(product_name)[:MAX_NAME_LENGTH]
 
-        if snapshot.next:
+        failed = _stage_failed(values)
+
+        if snapshot.next and not failed:
             fields["status"] = _review_status(values.get("current_stage", ""))
             await self._update(run_id, **fields)
             await self._log(
@@ -315,7 +351,7 @@ class RunService:
         error = values.get("error") or ""
         fields["finished_at"] = utcnow()
         fields["error"] = error
-        fields["status"] = RunStatus.FAILED if error else RunStatus.COMPLETED
+        fields["status"] = RunStatus.FAILED if (error or failed) else RunStatus.COMPLETED
 
         if not error:
             archive = await asyncio.to_thread(
@@ -404,6 +440,57 @@ class RunService:
             raise FileNotFoundError(name)
         return target
 
+    async def export_pdf(self, run_id: str, kind: str) -> tuple[str, bool]:
+        """Render one of the run's structured documents as a PDF, on request.
+
+        Returns the artifact's file name and whether this call is what produced
+        it. An existing PDF is handed back untouched: re-opening the export must
+        not quietly spend another model call on a document already on disk.
+
+        This is the only path that ignores ``GENERATE_PDFS``, and deliberately.
+        That setting decides whether a *pipeline* spends on PDFs nobody asked
+        for; this is somebody asking. The structured JSON stays canonical and the
+        console keeps rendering from it either way, so nothing on screen depends
+        on whether this ever runs.
+        """
+        document = EXPORTABLE.get(kind)
+        if document is None:
+            raise RunStateError(
+                f"{kind!r} cannot be exported. Try one of: {', '.join(sorted(EXPORTABLE))}."
+            )
+
+        record = await self._require(run_id)
+        workspace = self.workspace(run_id)
+
+        if (workspace.artifacts / document.pdf_name).is_file():
+            return document.pdf_name, False
+
+        state = await self.get_graph_state(run_id)
+        content = state.get(document.state_key) or {}
+        if not content:
+            raise RunStateError(
+                f"This run has no {document.label} to export yet."
+            )
+
+        await self._log(run_id, f"Exporting the {document.label} as a PDF.", level=EventLevel.STAGE)
+
+        # Scoped so the export's cost passes the one accounting point like any
+        # other call. It is not folded into the run's own total: this was not
+        # spent by the pipeline, and quietly adding it would misreport what the
+        # run itself cost.
+        with recording(run_id, f"export:{kind}") as ledger:
+            path = await render_document(
+                document.prompt(record.requirement, content), workspace, document.pdf_name
+            )
+
+        if path is None:
+            raise RunStateError(f"The {document.label} PDF could not be produced.")
+
+        logger.info(
+            "Exported %s using %d model call(s)", document.pdf_name, ledger.totals()["calls"]
+        )
+        return document.pdf_name, True
+
     async def package(self, run_id: str) -> Path | None:
         """Build (or rebuild) the downloadable archive for a run."""
         record = await self._require(run_id)
@@ -465,6 +552,47 @@ def _stage_of(record: RunRecord) -> Stage | None:
 def _stage_label(record: RunRecord) -> str:
     stage = _stage_of(record)
     return stage.label if stage else "The current stage"
+
+
+def _cost_fields(cost_report: dict[str, Any] | None) -> dict[str, Any]:
+    """Run-level model spending, flattened onto the row the dashboard lists.
+
+    Only the aggregates worth sorting a list by are stored; the breakdown by
+    stage and model stays in graph state, where the detail page reads it.
+
+    ``total_tokens`` is what the run *reserved* against the providers' windows.
+    That is the honest always-available figure: most calls here are structured,
+    and a structured response comes back with the provider's usage stripped off,
+    so summing reported usage would silently undercount. The reported total,
+    with its gaps, is in the report itself.
+
+    A run that made no model call (or was checkpointed before this existed)
+    writes nothing rather than zeroing what an earlier leg already recorded.
+    """
+    report = cost_report or {}
+    if not report.get("calls"):
+        return {}
+
+    return {
+        "total_calls": int(report.get("calls") or 0),
+        "total_tokens": int(report.get("reserved_tokens") or 0),
+        # No pricing source exists yet; see llm/accounting.py.
+        "estimated_cost": report.get("estimated_cost"),
+    }
+
+
+def _stage_failed(values: dict[str, Any]) -> bool:
+    """Did the stage the graph came to rest on fail?
+
+    An interrupt on its own does not mean a human is wanted: `interrupt_after`
+    fires when the node returns, and a node that failed produced no artifact to
+    approve. The routers already end such a run before it can pause, so this is
+    the same invariant stated once more where the status is actually written --
+    cheap insurance against a future stage joining INTERRUPT_AFTER without a
+    matching guard in its router.
+    """
+    stage = values.get("current_stage", "")
+    return (values.get("status") or {}).get(stage) == AgentStatus.FAILED.value
 
 
 def _review_status(current_stage: str) -> RunStatus:

@@ -6,13 +6,22 @@ from pathlib import Path
 import pytest
 
 from core.paths import UnsafePathError
+from schema.architect_schema import ArchitectSchema
 from schema.developer_schema import DeveloperSchema
+from schema.product_manager_schema import ManagerSchema
 from schema.qa_schema import QASchema
 from server.broker import EventBroker
 from server.db import open_database
 from server.models import EventLevel, RunEvent, RunStatus
-from server.service import RunNotFoundError, RunService, RunStateError, _derive_name
-from state.state import Stage
+from server.service import (
+    RunNotFoundError,
+    RunService,
+    RunStateError,
+    _cost_fields,
+    _derive_name,
+    _stage_failed,
+)
+from state.state import AgentStatus, Stage
 from tests import fakes
 
 REQUIREMENT = "Build an expense tracker with login and monthly reports."
@@ -372,7 +381,7 @@ class TestFiles:
         with pytest.raises((UnsafePathError, FileNotFoundError)):
             service.read_file(record.id, hostile)
 
-    async def test_artifacts_are_reachable_by_name(self, service: RunService):
+    async def test_artifacts_are_reachable_by_name(self, service: RunService, with_pdfs):
         record = await run_to_completion(service)
 
         assert service.artifact_path(record.id, "product_manager.pdf").is_file()
@@ -443,3 +452,195 @@ async def _settle_log_pump() -> None:
     """Let the log pump drain before asserting on persisted events."""
     for _ in range(20):
         await asyncio.sleep(0.01)
+
+
+# ─────────────────────────────────────────────────────────────────
+# Failed stages must never look like a review
+# ─────────────────────────────────────────────────────────────────
+
+
+class TestFailedStagesNeverEnterReview:
+    """A failed agent produced no artifact, so there is nothing to approve.
+
+    ``interrupt_after`` fires the moment the node returns — before the router
+    that would have halted the run gets to see the failure. So the graph pauses
+    in a state indistinguishable from a successful pause unless the stage's own
+    status is consulted. A real run reached ``awaiting_architecture_review`` with
+    an empty architecture and offered the user an Approve button for it.
+    """
+
+    async def test_a_failed_pm_does_not_become_a_pm_review(
+        self, service: RunService, stub_llm
+    ):
+        stub_llm.set(ManagerSchema, RuntimeError("the model refused"))
+        record = await service.create(REQUIREMENT)
+        await service.begin(record.id)
+
+        record = await service.wait(record.id)
+
+        assert record.status is RunStatus.FAILED
+        assert not record.status.is_awaiting_review
+
+    async def test_a_failed_pm_records_the_error(self, service: RunService, stub_llm):
+        stub_llm.set(ManagerSchema, RuntimeError("the model refused"))
+        record = await service.create(REQUIREMENT)
+        await service.begin(record.id)
+
+        record = await service.wait(record.id)
+
+        assert "the model refused" in record.error
+        assert record.finished_at
+
+    async def test_a_failed_architecture_does_not_become_an_architecture_review(
+        self, service: RunService, stub_llm
+    ):
+        stub_llm.set(ArchitectSchema, RuntimeError("the model refused"))
+        record = await service.create(REQUIREMENT)
+        await service.begin(record.id)
+        await service.wait(record.id)  # pauses at the PM gate
+        await service.approve(record.id)
+
+        record = await service.wait(record.id)
+
+        assert record.status is RunStatus.FAILED
+        assert not record.status.is_awaiting_review
+
+    async def test_a_failed_stage_cannot_be_approved(self, service: RunService, stub_llm):
+        """The approval path is what would resume a run with no artifact."""
+        stub_llm.set(ManagerSchema, RuntimeError("the model refused"))
+        record = await service.create(REQUIREMENT)
+        await service.begin(record.id)
+        await service.wait(record.id)
+
+        with pytest.raises(RunStateError):
+            await service.approve(record.id)
+
+    async def test_a_successful_pm_still_pauses_for_review(self, service: RunService):
+        record = await service.create(REQUIREMENT)
+        await service.begin(record.id)
+
+        record = await service.wait(record.id)
+
+        assert record.status is RunStatus.AWAITING_PM_REVIEW
+
+    async def test_a_successful_architecture_still_pauses_for_review(
+        self, service: RunService
+    ):
+        record = await service.create(REQUIREMENT)
+        await service.begin(record.id)
+        await service.wait(record.id)
+        await service.approve(record.id)
+
+        record = await service.wait(record.id)
+
+        assert record.status is RunStatus.AWAITING_ARCHITECTURE_REVIEW
+
+    async def test_an_approval_state_always_has_the_artifact_it_asks_about(
+        self, service: RunService
+    ):
+        """The invariant, stated directly: no approval state without its artifact."""
+        record = await service.create(REQUIREMENT)
+        await service.begin(record.id)
+
+        for _ in range(3):
+            record = await service.wait(record.id)
+            if not record.status.is_awaiting_review:
+                break
+
+            state = await service.get_graph_state(record.id)
+            artifact = (
+                state.get("prd")
+                if record.status is RunStatus.AWAITING_PM_REVIEW
+                else state.get("architecture")
+            )
+            assert artifact, f"{record.status.value} with no artifact to approve"
+
+            await service.approve(record.id)
+
+
+class TestSettleRefusesToCallAFailureAReview:
+    """The invariant, enforced where the status is written.
+
+    Today every router checks `_failed` and ends the run, so a failed stage never
+    reaches an interrupt. That is six separate places each having to remember.
+    This guard states it once more at the point `_settle` decides what to record,
+    so adding a stage to INTERRUPT_AFTER without a matching router guard cannot
+    resurrect an approval state for an artifact that was never produced.
+    """
+
+    def test_a_failed_stage_is_recognised(self):
+        values = {
+            "current_stage": Stage.ARCHITECTURE.value,
+            "status": {Stage.ARCHITECTURE.value: AgentStatus.FAILED.value},
+        }
+        assert _stage_failed(values) is True
+
+    def test_a_completed_stage_is_not(self):
+        values = {
+            "current_stage": Stage.ARCHITECTURE.value,
+            "status": {Stage.ARCHITECTURE.value: AgentStatus.COMPLETED.value},
+        }
+        assert _stage_failed(values) is False
+
+    def test_a_stage_that_reported_nothing_is_not_treated_as_failed(self):
+        """Absence of a status is not evidence of failure."""
+        assert _stage_failed({"current_stage": Stage.PM.value, "status": {}}) is False
+        assert _stage_failed({}) is False
+
+    def test_the_failure_of_a_different_stage_does_not_count(self):
+        """An earlier stage that failed and was retried must not block this gate."""
+        values = {
+            "current_stage": Stage.ARCHITECTURE.value,
+            "status": {
+                Stage.DEVELOPER.value: AgentStatus.FAILED.value,
+                Stage.ARCHITECTURE.value: AgentStatus.COMPLETED.value,
+            },
+        }
+        assert _stage_failed(values) is False
+
+
+class TestSettleRecordsWhatTheRunSpent:
+    """The run-level aggregates the dashboard sorts by.
+
+    Only the two figures worth listing a run by are flattened onto the row; the
+    breakdown by stage and by model stays in graph state, where the detail page
+    reads it. `total_tokens` is what the run *reserved* against the providers'
+    windows, because that is the figure that decides whether a run fits a rate
+    limit and the only one always available — a structured response arrives with
+    the provider's own usage stripped off.
+    """
+
+    def test_the_calls_and_reserved_tokens_are_flattened_onto_the_row(self):
+        report = {"calls": 9, "reserved_tokens": 18_400, "actual_tokens": 4_000}
+
+        assert _cost_fields(report) == {
+            "total_calls": 9,
+            "total_tokens": 18_400,
+            "estimated_cost": None,
+        }
+
+    def test_reported_usage_is_not_what_gets_stored(self):
+        """Summing reported usage would silently undercount every structured call."""
+        fields = _cost_fields({"calls": 2, "reserved_tokens": 5_000, "actual_tokens": 120})
+
+        assert fields["total_tokens"] == 5_000
+
+    def test_a_cost_the_report_carries_is_passed_through(self):
+        """Nothing is computed here; if a later phase supplies one, it is stored."""
+        report = {"calls": 1, "reserved_tokens": 10, "estimated_cost": 0.0042}
+
+        assert _cost_fields(report)["estimated_cost"] == 0.0042
+
+    def test_a_run_that_called_nothing_writes_nothing(self):
+        """Rather than zeroing what an earlier leg of the same run already recorded."""
+        assert _cost_fields({"calls": 0, "reserved_tokens": 0}) == {}
+        assert _cost_fields({}) == {}
+        assert _cost_fields(None) == {}
+
+    async def test_a_completed_run_stores_its_aggregates(self, service: RunService):
+        """The stub makes no metered call, so the honest figure is zero."""
+        record = await run_to_completion(service)
+
+        assert record.total_calls == 0
+        assert record.total_tokens == 0
+        assert record.estimated_cost is None

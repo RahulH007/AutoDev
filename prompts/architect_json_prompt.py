@@ -1,6 +1,9 @@
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
+from prompts.projections import prd_for_architect
+from utils.json_utils import compact_json
+
 SYSTEM_PROMPT = """
 You are a Principal Software Architect working in an AI-powered autonomous software development system.
 
@@ -212,7 +215,9 @@ PRODUCT REQUIREMENTS DOCUMENT (PRD):
 
     fmt = {
         "user_requirements": user_requirements,
-        "prd_json": prd_json,
+        # Projected, not trimmed: the artifact and the graph state keep every
+        # field. See prompts/projections.py for what each list is derived from.
+        "prd_json": compact_json(prd_for_architect(prd_json)),
     }
 
     if is_revision:
@@ -225,7 +230,7 @@ USER REVISION FEEDBACK:
 
 Produce the full revised architecture that addresses the feedback.
 """))
-        fmt["previous_architecture"] = previous_architecture
+        fmt["previous_architecture"] = compact_json(previous_architecture)
         fmt["feedback"] = feedback
     else:
         messages.append(HumanMessagePromptTemplate.from_template("""

@@ -1,63 +1,87 @@
 import Link from "next/link";
+import { Download } from "lucide-react";
 
 import StageTrack from "@/components/ui/StageTrack";
 import { StatusDot } from "@/components/ui/StatusDot";
-import { STATUS_LABELS } from "@/lib/api";
-import type { Project } from "@/lib/projects";
+import { api, type RunRecord } from "@/lib/api";
+import { hasDownload } from "@/lib/deliverables";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 /**
- * A project is every run sharing a name — see `lib/projects.ts`. The card shows
- * the latest attempt, because that is what "where is this idea now" means.
+ * One delivered run, presented as the thing it produced.
+ *
+ * Keyed by `run.id` and never combined with any other run. The heading is
+ * `run.name`, which for a completed run is the PRD's `product_name` — a real
+ * product name rather than a grouping key.
  */
 export default function ProjectCard({
-  project,
+  run,
   className,
 }: {
-  project: Project;
+  run: RunRecord;
   className?: string;
 }) {
-  const { latest } = project;
+  const downloadable = hasDownload(run);
 
   return (
-    <Link
-      href={`/runs/${latest.id}`}
+    <div
       className={cn(
-        "group flex flex-col gap-3.5 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4",
+        "group relative flex flex-col gap-3.5 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4",
         "transition-colors hover:border-[var(--line-strong)] hover:bg-[var(--panel-2)]",
         className,
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-display text-[15px] font-semibold tracking-tight text-[var(--text)]">
-            {project.name}
-          </p>
+          {/* Stretched link: the whole card opens the run, but the download
+              anchor below stays independently clickable. */}
+          <Link href={`/runs/${run.id}`} className="after:absolute after:inset-0">
+            <p className="truncate font-display text-[15px] font-semibold tracking-tight text-[var(--text)]">
+              {run.name?.trim() || "Untitled"}
+            </p>
+          </Link>
           <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-[var(--muted)]">
-            {latest.requirement}
+            {run.requirement}
           </p>
         </div>
-        <StatusDot status={latest.status} className="mt-1.5" />
+        <StatusDot status={run.status} className="mt-1.5" />
       </div>
 
-      <StageTrack currentStage={latest.current_stage} status={latest.status} size="sm" />
+      <StageTrack currentStage={run.current_stage} status={run.status} size="sm" />
 
       <div className="flex items-center gap-2.5 font-mono text-[10.5px] text-[var(--muted-soft)]">
-        <span>
-          {project.runCount} run{project.runCount === 1 ? "" : "s"}
-        </span>
-        <Dot />
-        <span className="truncate">{STATUS_LABELS[latest.status]}</span>
-        {project.bestScore !== null && (
+        <span className="truncate">{run.id.slice(0, 7)}</span>
+        {run.qa_score !== null && (
           <>
             <Dot />
-            <span>QA {project.bestScore}/10</span>
+            <span>QA {run.qa_score.toFixed(1)}/10</span>
           </>
         )}
-        <Dot />
-        <span className="ml-auto shrink-0">{formatRelativeTime(latest.created_at)}</span>
+        {run.retry_count > 0 && (
+          <>
+            <Dot />
+            <span>
+              {run.retry_count} {run.retry_count === 1 ? "retry" : "retries"}
+            </span>
+          </>
+        )}
+
+        <span className="ml-auto flex shrink-0 items-center gap-2.5">
+          <span>{formatRelativeTime(run.finished_at || run.created_at)}</span>
+          {downloadable && (
+            <a
+              href={api.zipUrl(run.id)}
+              onClick={(event) => event.stopPropagation()}
+              className="relative z-10 flex items-center gap-1 rounded px-1.5 py-0.5 text-[var(--muted)] transition-colors hover:bg-[var(--panel)] hover:text-[var(--text)]"
+              title="Download the generated project"
+            >
+              <Download className="h-3 w-3" />
+              zip
+            </a>
+          )}
+        </span>
       </div>
-    </Link>
+    </div>
   );
 }
 

@@ -11,6 +11,7 @@ from agents.pm_agent import pm_agent
 from agents.qa_agent import qa_agent
 from core import manifest as manifest_util
 from core.paths import RunWorkspace
+from schema.architect_schema import ArchitectSchema
 from schema.developer_schema import DeveloperSchema
 from schema.product_manager_schema import ManagerSchema
 from schema.qa_schema import QASchema
@@ -26,7 +27,7 @@ def base_state(workspace: RunWorkspace):
 
 
 class TestPmAgent:
-    async def test_produces_prd_and_artifacts(self, base_state, workspace, stub_llm):
+    async def test_produces_prd_and_artifacts(self, base_state, workspace, stub_llm, with_pdfs):
         update = await pm_agent(base_state)
 
         assert update["prd"]["product_name"] == "SpendWise"
@@ -36,6 +37,33 @@ class TestPmAgent:
         saved = json.loads((workspace.artifacts / "product_manager.json").read_text(encoding="utf-8"))
         assert saved["product_name"] == "SpendWise"
         assert (workspace.artifacts / "product_manager.pdf").is_file()
+
+    async def test_the_json_artifact_survives_without_the_pdf(
+        self, base_state, workspace, stub_llm
+    ):
+        """PDFs are off by default; the structured artifact is the deliverable."""
+        update = await pm_agent(base_state)
+
+        assert update["prd"]["product_name"] == "SpendWise"
+        assert update["status"][Stage.PM.value] == AgentStatus.COMPLETED.value
+        assert (workspace.artifacts / "product_manager.json").is_file()
+        assert not (workspace.artifacts / "product_manager.pdf").exists()
+
+    async def test_a_pdf_failure_does_not_fail_the_stage(
+        self, base_state, workspace, stub_llm, with_pdfs, monkeypatch: pytest.MonkeyPatch
+    ):
+        """The PDF call sits inside the agent body, after the expensive one."""
+        from llm import registry
+
+        async def boom(*args, **kwargs):
+            raise RuntimeError("rate limited")
+
+        monkeypatch.setattr(registry, "allm_call", boom)
+
+        update = await pm_agent(base_state)
+
+        assert update["status"][Stage.PM.value] == AgentStatus.COMPLETED.value
+        assert (workspace.artifacts / "product_manager.json").is_file()
 
     async def test_enums_are_serialised_as_plain_strings(self, base_state, stub_llm):
         update = await pm_agent(base_state)
@@ -72,7 +100,7 @@ class TestPmAgent:
 
 
 class TestArchitectureAgent:
-    async def test_produces_architecture_and_artifacts(self, base_state, workspace, stub_llm):
+    async def test_produces_architecture_and_artifacts(self, base_state, workspace, stub_llm, with_pdfs):
         state = {**base_state, "prd": fakes.build_prd().model_dump(mode="json")}
         update = await architecture_agent(state)
 
@@ -80,6 +108,59 @@ class TestArchitectureAgent:
         assert update["architect_feedback"] == ""
         assert (workspace.artifacts / "architecture.json").is_file()
         assert (workspace.artifacts / "architecture.pdf").is_file()
+
+    async def test_it_derives_a_contract_from_the_document_it_wrote(
+        self, base_state, stub_llm
+    ):
+        """Derived, not generated: no extra model call, and no stale contract."""
+        state = {**base_state, "prd": fakes.build_prd().model_dump(mode="json")}
+
+        update = await architecture_agent(state)
+
+        contract = update["contract"]
+        assert [service["slug"] for service in contract["services"]] == [fakes.SERVICE_SLUG]
+        assert contract["services"][0]["key_files"] == ["app/calculator.py", "app/store.py"]
+
+    async def test_deriving_the_contract_costs_no_extra_model_call(
+        self, base_state, stub_llm
+    ):
+        state = {**base_state, "prd": fakes.build_prd().model_dump(mode="json")}
+
+        await architecture_agent(state)
+
+        assert stub_llm.calls_for(ArchitectSchema) == 1
+
+    async def test_a_revision_replaces_the_contract_with_the_new_one(
+        self, base_state, stub_llm
+    ):
+        """A contract must never outlive the architecture it was derived from."""
+        revised = fakes.build_architecture()
+        revised.project_structure[0].key_files = ["app/rewritten.py"]
+        stub_llm.set(ArchitectSchema, fakes.build_architecture(), revised)
+
+        state = {**base_state, "prd": fakes.build_prd().model_dump(mode="json")}
+        first = await architecture_agent(state)
+        second = await architecture_agent(
+            {**state, "architecture": first["architecture"], "architect_feedback": "Rename it."}
+        )
+
+        assert first["contract"]["services"][0]["key_files"] == [
+            "app/calculator.py",
+            "app/store.py",
+        ]
+        assert second["contract"]["services"][0]["key_files"] == ["app/rewritten.py"]
+
+    async def test_a_failed_architecture_pass_stores_no_contract(
+        self, base_state, stub_llm
+    ):
+        """Nothing was approved, so there is nothing to check code against."""
+        stub_llm.set(ArchitectSchema, RuntimeError("provider is down"))
+        state = {**base_state, "prd": fakes.build_prd().model_dump(mode="json")}
+
+        update = await architecture_agent(state)
+
+        assert update["status"][Stage.ARCHITECTURE.value] == AgentStatus.FAILED.value
+        assert "contract" not in update
 
 
 class TestDeveloperAgent:
@@ -149,7 +230,28 @@ class TestDeveloperAgent:
         )
         stub_llm.set(DeveloperSchema, patched)
 
-        second = await developer_agent({**ready_state, **first})
+        # A real retry always arrives with evidence: the routers only send the
+        # run back here when the static gate, QA or the test runner reported
+        # something. Evidence is what tells the developer to rewrite a service
+        # it already generated rather than skip it.
+        # Shaped as `run_static_gate` actually writes it: a per-service check as
+        # well as the flattened list, and paths prefixed with the service slug.
+        # Attribution needs that to place the failure on this service — and a
+        # service with evidence of its own is sent a *fix* prompt, whose answer is
+        # only the changed files and must never be read as a complete service.
+        failure = f"{fakes.SERVICE_SLUG}/app/calculator.py:1: E999"
+        second = await developer_agent({
+            **ready_state,
+            **first,
+            "static_report": {
+                "ran": True,
+                "passed": False,
+                "checks": [
+                    {"name": "compile", "service": fakes.SERVICE_SLUG, "failures": [failure]}
+                ],
+                "failures": [failure],
+            },
+        })
 
         assert second["retry_count"] == 2
         # Untouched files survive, and the changed one is updated rather than duplicated.

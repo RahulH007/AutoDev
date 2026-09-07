@@ -58,7 +58,13 @@ _DURATION_PART = re.compile(r"(\d+(?:\.\d+)?)\s*(ms|h|m|s)(?![a-z])", re.IGNOREC
 _UNIT_SECONDS = {"ms": 0.001, "s": 1.0, "m": 60.0, "h": 3600.0}
 
 _RETRYABLE_STATUS = frozenset({408, 409, 425, 429})
-_FATAL_STATUS = frozenset({401, 402, 403, 404})
+# Nothing further along helps. A rejected key stays rejected and a
+# decommissioned model stays gone; 413 belongs here for a different reason --
+# every lower rung of the structured ladder appends the JSON schema to the
+# prompt, so degrading a request that was already too large only grows it.
+# Groq tags 413 `rate_limit_exceeded` and names a TPM figure, which makes it
+# look retryable; it is not, because waiting cannot shrink a request.
+_FATAL_STATUS = frozenset({401, 402, 403, 404, 413})
 
 # Provider SDKs and httpx do not subclass the builtin TimeoutError or
 # ConnectionError, so the class name is the only portable signal.

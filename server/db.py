@@ -38,7 +38,10 @@ CREATE TABLE IF NOT EXISTS runs (
     error         TEXT    NOT NULL DEFAULT '',
     created_at    TEXT    NOT NULL,
     updated_at    TEXT    NOT NULL,
-    finished_at   TEXT    NOT NULL DEFAULT ''
+    finished_at   TEXT    NOT NULL DEFAULT '',
+    total_calls    INTEGER NOT NULL DEFAULT 0,
+    total_tokens   INTEGER NOT NULL DEFAULT 0,
+    estimated_cost REAL
 );
 
 CREATE TABLE IF NOT EXISTS run_events (
@@ -54,6 +57,23 @@ CREATE INDEX IF NOT EXISTS ix_run_events_run ON run_events (run_id, id);
 CREATE INDEX IF NOT EXISTS ix_runs_created  ON runs (created_at DESC);
 """
 
+# Columns added to ``runs`` after the first release, as (column, definition).
+#
+# ``SCHEMA`` only ever runs CREATE TABLE IF NOT EXISTS, so a database written by
+# an older version keeps the table it already has and would never see a new
+# column. These are applied with ALTER TABLE ADD COLUMN, which SQLite performs by
+# rewriting the header alone: no row is touched, no data is copied and nothing is
+# dropped. Each is guarded by what the table actually holds, so running this on
+# an already-migrated database does nothing at all.
+#
+# A NOT NULL column added this way needs a default, which is also what backfills
+# the rows that predate it.
+_MIGRATIONS: tuple[tuple[str, str], ...] = (
+    ("total_calls", "INTEGER NOT NULL DEFAULT 0"),
+    ("total_tokens", "INTEGER NOT NULL DEFAULT 0"),
+    ("estimated_cost", "REAL"),
+)
+
 # Columns a caller is allowed to update, so a typo cannot build broken SQL.
 _UPDATABLE = frozenset(
     {
@@ -66,6 +86,9 @@ _UPDATABLE = frozenset(
         "zip_path",
         "error",
         "finished_at",
+        "total_calls",
+        "total_tokens",
+        "estimated_cost",
     }
 )
 
@@ -101,9 +124,39 @@ class Database:
         await self._conn.execute("PRAGMA busy_timeout=5000")
         await self._conn.executescript(SCHEMA)
         await self._conn.commit()
+        await self.migrate()
 
         logger.info("Database ready at %s", self.path)
         return self
+
+    async def migrate(self) -> list[str]:
+        """Add any column this version needs that the file does not already have.
+
+        Idempotent and additive: nothing is dropped, rewritten or recreated, and
+        a database already carrying every column comes out untouched. Returns the
+        columns it added, which is what makes the no-op case assertable.
+        """
+        existing = await self.columns("runs")
+        added: list[str] = []
+
+        for column, definition in _MIGRATIONS:
+            if column in existing:
+                continue
+            # The names come from the module constant above, never from a caller.
+            await self.connection.execute(
+                f"ALTER TABLE runs ADD COLUMN {column} {definition}"  # noqa: S608
+            )
+            added.append(column)
+
+        if added:
+            await self.connection.commit()
+            logger.info("Added column(s) to runs: %s", ", ".join(added))
+        return added
+
+    async def columns(self, table: str) -> set[str]:
+        """Column names as the file actually holds them."""
+        async with self.connection.execute(f"PRAGMA table_info({table})") as cursor:  # noqa: S608
+            return {str(row["name"]) for row in await cursor.fetchall()}
 
     async def close(self) -> None:
         if self._conn is not None:
@@ -124,10 +177,12 @@ class Database:
                 """
                 INSERT INTO runs (id, name, requirement, status, current_stage, retry_count,
                                   qa_score, workspace, zip_path, error,
-                                  created_at, updated_at, finished_at)
+                                  created_at, updated_at, finished_at,
+                                  total_calls, total_tokens, estimated_cost)
                 VALUES (:id, :name, :requirement, :status, :current_stage, :retry_count,
                         :qa_score, :workspace, :zip_path, :error,
-                        :created_at, :updated_at, :finished_at)
+                        :created_at, :updated_at, :finished_at,
+                        :total_calls, :total_tokens, :estimated_cost)
                 """,
                 record.model_dump(mode="json"),
             )

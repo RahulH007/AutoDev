@@ -1,11 +1,12 @@
-import json
 
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
+from utils.json_utils import compact_json
+
 
 def get_pm_doc_prompt(user_requirements: str, json_response: dict) -> list:
-    json_str = json.dumps(json_response, indent=2)
+    json_str = compact_json(json_response)
 
     prompt_template = ChatPromptTemplate.from_messages([
         SystemMessage(content="""You are a senior product manager at a top-tier technology company with 15+ years of experience shipping successful B2B and B2C products.

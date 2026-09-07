@@ -8,7 +8,14 @@ from langchain_core.messages import AIMessage
 from langchain_core.runnables import Runnable, RunnableLambda
 from pydantic import BaseModel
 
-from core.config import LLMProvider, Purpose, Settings, get_settings, reset_settings_cache
+from core.config import (
+    LLMProvider,
+    Purpose,
+    Settings,
+    get_settings,
+    reset_settings_cache,
+    shadowed_env_keys,
+)
 from llm import registry
 from llm.budget import BudgetExceededError, budget_for, reset_budgets
 
@@ -260,8 +267,10 @@ class TestRetryPolicy:
         primary = FlakyFakeModel(always=Exception(TOOL_CHOICE_400))
         fallback = FlakyFakeModel(content="from the fallback")
         models = {LLMProvider.GOOGLE: primary, LLMProvider.GROQ: fallback}
+        # `*_` absorbs the registry's optional arguments — ceiling, account,
+        # whatever comes next. Only the provider matters to this test.
         monkeypatch.setattr(
-            registry, "get_chat_model", lambda purpose, provider, settings=None: models[provider]
+            registry, "get_chat_model", lambda purpose, provider, *_, **__: models[provider]
         )
 
         assert registry.llm_call("hello", Purpose.TEXT) == "from the fallback"
@@ -427,3 +436,220 @@ class TestBudgetLearnsFromRejections:
             registry.llm_call("hello", Purpose.TEXT)
 
         assert self._text_budget().limit == 12_000
+
+
+class TestOutputTokenCeiling:
+    """Providers cap completions far below what a large schema needs.
+
+    Groq defaults `qwen/qwen3.8-27b` to 2048 completion tokens. A ManagerSchema
+    PRD does not fit, so the JSON came back truncated and every rung of the
+    structured ladder failed on it — the last one with
+    "Expecting ',' delimiter". Nothing retries its way out of that, so the
+    ceiling has to be asked for explicitly.
+    """
+
+    def test_there_is_a_configurable_ceiling(self):
+        assert Settings().llm_max_output_tokens > 2048
+
+    def test_it_is_settable_from_the_environment(self, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setenv("LLM_MAX_OUTPUT_TOKENS", "9001")
+        reset_settings_cache()
+        assert get_settings().llm_max_output_tokens == 9001
+
+    def test_groq_clients_are_built_with_it(self):
+        settings = Settings(groq_api_key="test-key", llm_max_output_tokens=4096)
+        model = registry._build(LLMProvider.GROQ, "qwen/qwen3.8-27b", settings)
+        assert model.max_tokens == 4096
+
+    def test_openai_clients_are_built_with_it(self):
+        settings = Settings(openai_api_key="test-key", llm_max_output_tokens=4096)
+        model = registry._build(LLMProvider.OPENAI, "gpt-4.1-mini", settings)
+        assert model.max_tokens == 4096
+
+    def test_google_uses_its_own_parameter_name(self):
+        """Gemini calls it max_output_tokens; a wrong name is silently ignored."""
+        settings = Settings(google_api_key="test-key", llm_max_output_tokens=4096)
+        model = registry._build(LLMProvider.GOOGLE, "gemini-2.5-flash", settings)
+        assert model.max_output_tokens == 4096
+
+    def test_the_ceiling_is_part_of_the_model_cache_key(self):
+        """Same reason temperature is: it changes the client that gets built.
+
+        ``max_output_structured=None`` defers to the global ceiling, which is the
+        knob under test here; see test_output_ceilings.py for the per-purpose one.
+        """
+        registry.reset_cache()
+        small = Settings(google_api_key="k", llm_max_output_tokens=1024, max_output_structured=None)
+        large = Settings(google_api_key="k", llm_max_output_tokens=8192, max_output_structured=None)
+
+        first = registry.get_chat_model(Purpose.STRUCTURED, LLMProvider.GOOGLE, small)
+        second = registry.get_chat_model(Purpose.STRUCTURED, LLMProvider.GOOGLE, large)
+
+        assert first is not second
+        assert second.max_output_tokens == 8192
+
+    def test_a_zero_or_negative_ceiling_means_the_provider_default(self):
+        """An explicit 0 opts out rather than asking for a zero-length answer."""
+        settings = Settings(groq_api_key="test-key", llm_max_output_tokens=0)
+        model = registry._build(LLMProvider.GROQ, "qwen/qwen3.8-27b", settings)
+        assert model.max_tokens is None
+
+
+TOO_LARGE_413 = (
+    "Error code: 413 - {'error': {'message': 'Request too large for model "
+    "qwen/qwen3.8-27b on tokens per minute (TPM): Limit 8000, Requested 9200, "
+    "please reduce your message size and try again.'}}"
+)
+
+
+class TestReservationCoversTheOutputCeiling:
+    """The budget must refuse what the provider would refuse.
+
+    Providers charge `prompt + max_completion_tokens` against the per-minute
+    window. Reserving only `llm_output_reserve` under-counts whenever the output
+    ceiling is the larger of the two, so the budget waves through a request the
+    provider answers with 413 — which is exactly what happened at the
+    architecture stage of run 9caeb0c9: Limit 8000, Requested 9200.
+
+    The ceiling is now resolved per purpose, so each case sets `MAX_OUTPUT_TEXT`
+    alongside the global one: the reservation has to cover whatever the client
+    was actually built with. How that figure is resolved is test_output_ceilings.py.
+    """
+
+    @staticmethod
+    def _budget_for_text():
+        settings = get_settings()
+        model = registry.model_name_for(LLMProvider.GOOGLE, Purpose.TEXT, settings)
+        return budget_for(LLMProvider.GOOGLE, model, settings.llm_tokens_per_minute)
+
+    def test_a_request_the_provider_would_reject_is_refused_locally(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Tiny prompt, but prompt + ceiling exceeds the window."""
+        reset_budgets()
+        monkeypatch.setenv("LLM_TOKENS_PER_MINUTE", "4000")
+        monkeypatch.setenv("LLM_OUTPUT_RESERVE", "2000")
+        monkeypatch.setenv("LLM_MAX_OUTPUT_TOKENS", "4096")
+        monkeypatch.setenv("MAX_OUTPUT_TEXT", "4096")
+        reset_settings_cache()
+        model = MeteredFakeModel(total_tokens=5)
+        monkeypatch.setattr(registry, "get_chat_model", lambda *a, **k: model)
+
+        with pytest.raises(BudgetExceededError):
+            registry.llm_call("hello there", Purpose.TEXT)
+
+        # Refused before the request left the process, which is the whole point.
+        assert model.calls == 0
+
+    def test_the_reservation_uses_the_ceiling_when_it_is_larger(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        reset_budgets()
+        monkeypatch.setenv("LLM_OUTPUT_RESERVE", "2000")
+        monkeypatch.setenv("LLM_MAX_OUTPUT_TOKENS", "4096")
+        monkeypatch.setenv("MAX_OUTPUT_TEXT", "4096")
+        reset_settings_cache()
+        # No usage metadata, so the reservation stands and can be measured.
+        model = MeteredFakeModel(total_tokens=None)
+        monkeypatch.setattr(registry, "get_chat_model", lambda *a, **k: model)
+
+        registry.llm_call("hello there", Purpose.TEXT)
+
+        assert self._budget_for_text().used() >= 4096
+
+    def test_the_reserve_still_wins_when_it_is_the_larger_of_the_two(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        reset_budgets()
+        monkeypatch.setenv("LLM_OUTPUT_RESERVE", "3000")
+        monkeypatch.setenv("LLM_MAX_OUTPUT_TOKENS", "1000")
+        monkeypatch.setenv("MAX_OUTPUT_TEXT", "1000")
+        reset_settings_cache()
+        model = MeteredFakeModel(total_tokens=None)
+        monkeypatch.setattr(registry, "get_chat_model", lambda *a, **k: model)
+
+        registry.llm_call("hello there", Purpose.TEXT)
+
+        assert self._budget_for_text().used() >= 3000
+
+    def test_opting_out_of_the_ceiling_falls_back_to_the_reserve(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        """0 means 'provider default', which we cannot know, so reserve as before."""
+        reset_budgets()
+        monkeypatch.setenv("LLM_OUTPUT_RESERVE", "2000")
+        monkeypatch.setenv("LLM_MAX_OUTPUT_TOKENS", "0")
+        monkeypatch.setenv("MAX_OUTPUT_TEXT", "0")
+        reset_settings_cache()
+        model = MeteredFakeModel(total_tokens=None)
+        monkeypatch.setattr(registry, "get_chat_model", lambda *a, **k: model)
+
+        registry.llm_call("hello there", Purpose.TEXT)
+
+        used = self._budget_for_text().used()
+        assert 2000 <= used < 3000
+
+
+class TestOversizedRequestsDoNotWalkTheLadder:
+    def test_a_413_stops_the_ladder_rather_than_degrading(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Lower rungs append the schema, so degrading grows the request."""
+        model = LadderFakeModel(errors={"native": Exception(TOO_LARGE_413)})
+        monkeypatch.setattr(registry, "get_chat_model", lambda *a, **k: model)
+
+        with pytest.raises(Exception, match="Request too large"):
+            registry.get_structured_llm(Point).invoke("hi")
+
+        assert model.calls == ["native"]
+
+    def test_a_429_still_walks_and_retries_as_before(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        """The 413 change must not disturb rate-limit handling."""
+        rate_limited = Exception(
+            "Error code: 429 - Rate limit reached on tokens per minute (TPM): "
+            "Limit 8000, Used 3912, Requested 4496. Please try again in 3.06s."
+        )
+        model = LadderFakeModel(flaky={"native": rate_limited})
+        monkeypatch.setattr(registry, "get_chat_model", lambda *a, **k: model)
+
+        assert registry.get_structured_llm(Point).invoke("hi") == Point(x=1)
+        assert model.calls == ["native", "native"]
+
+
+class TestShadowedEnvKeys:
+    """Any setting can be shadowed by the shell, so any setting must be named.
+
+    A shell ``CORS_ORIGINS`` overrode a correct ``.env`` and rejected every
+    preflight; the warning stayed silent because the check only looked at names
+    ending in ``_API_KEY``.
+    """
+
+    def test_reports_a_shadowed_non_credential_setting(self, tmp_path, monkeypatch) -> None:
+        env = tmp_path / ".env"
+        env.write_text("CORS_ORIGINS=http://localhost:3000\n", encoding="utf-8")
+        monkeypatch.setenv("CORS_ORIGINS", "http://localhost:9999")
+
+        assert shadowed_env_keys(str(env)) == ["CORS_ORIGINS"]
+
+    def test_reports_a_shadowed_credential(self, tmp_path, monkeypatch) -> None:
+        env = tmp_path / ".env"
+        env.write_text("GOOGLE_API_KEY=from-file\n", encoding="utf-8")
+        monkeypatch.setenv("GOOGLE_API_KEY", "from-shell")
+
+        assert shadowed_env_keys(str(env)) == ["GOOGLE_API_KEY"]
+
+    def test_silent_when_the_shell_agrees_with_the_file(self, tmp_path, monkeypatch) -> None:
+        env = tmp_path / ".env"
+        env.write_text("CORS_ORIGINS=http://localhost:3000\n", encoding="utf-8")
+        monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000")
+
+        assert shadowed_env_keys(str(env)) == []
+
+    def test_silent_when_the_setting_is_only_in_the_file(self, tmp_path, monkeypatch) -> None:
+        env = tmp_path / ".env"
+        env.write_text("CORS_ORIGINS=http://localhost:3000\n", encoding="utf-8")
+        monkeypatch.delenv("CORS_ORIGINS", raising=False)
+
+        assert shadowed_env_keys(str(env)) == []

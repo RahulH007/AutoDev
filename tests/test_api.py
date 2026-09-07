@@ -170,6 +170,115 @@ class TestGetRun:
         assert (await client.get(f"/api/runs/{run['id']}")).status_code == 404
 
 
+class TestServiceFailures:
+    """The failure-to-service mapping, exposed for inspection.
+
+    Additive and read-only: the console shows it, and nothing in the pipeline
+    acts on it until Phase 2.
+    """
+
+    async def test_the_detail_carries_the_mapping(self, client: AsyncClient):
+        run = await create_run(client)
+        detail = await settle(client, run["id"])
+
+        assert isinstance(detail["service_failures"], dict)
+
+    async def test_a_clean_run_reports_nothing(self, client: AsyncClient):
+        detail = await run_to_completion(client)
+
+        assert detail["service_failures"] == {}
+
+    async def test_a_run_that_has_not_started_reports_nothing(self, client: AsyncClient):
+        run = await create_run(client, auto_start=False)
+        detail = (await client.get(f"/api/runs/{run['id']}")).json()
+
+        assert detail["service_failures"] == {}
+
+    async def test_a_broken_run_attributes_its_failures_to_a_service(
+        self, client: AsyncClient, stub_llm
+    ):
+        """The generated code really is compiled, so this maps real output."""
+        stub_llm.set(DeveloperSchema, fakes.build_developer_output(broken=True))
+        detail = await run_to_completion(client)
+
+        assert fakes.SERVICE_SLUG in detail["service_failures"]
+        assert detail["service_failures"][fakes.SERVICE_SLUG]
+
+
+class TestCostReport:
+    """What the run spent, exposed for the console.
+
+    The model is stubbed in these tests, so no attempt reaches ``_metered`` and
+    the figures are legitimately zero. What is asserted here is that the field
+    exists, is well formed, and is additive — llm/accounting.py's own tests cover
+    what lands in it when calls are actually made.
+    """
+
+    async def test_the_detail_carries_a_cost_report(self, client: AsyncClient):
+        run = await create_run(client)
+        detail = await settle(client, run["id"])
+
+        assert set(detail["cost_report"]) >= {
+            "calls",
+            "estimated_tokens",
+            "reserved_tokens",
+            "actual_tokens",
+            "seconds",
+            "estimated_cost",
+            "by_stage",
+            "by_model",
+        }
+
+    async def test_usage_the_provider_never_reported_is_null_not_zero(
+        self, client: AsyncClient
+    ):
+        run = await create_run(client)
+        detail = await settle(client, run["id"])
+
+        assert detail["cost_report"]["actual_tokens"] is None
+
+    async def test_cost_is_null_because_there_is_no_pricing_source(self, client: AsyncClient):
+        run = await create_run(client)
+        detail = await settle(client, run["id"])
+
+        assert detail["cost_report"]["estimated_cost"] is None
+
+    async def test_a_run_that_has_not_started_reports_nothing_rather_than_failing(
+        self, client: AsyncClient
+    ):
+        run = await create_run(client, auto_start=False)
+        detail = (await client.get(f"/api/runs/{run['id']}")).json()
+
+        assert detail["cost_report"] == {}
+
+    async def test_the_run_record_carries_the_aggregates(self, client: AsyncClient):
+        run = await create_run(client, auto_start=False)
+
+        assert run["total_calls"] == 0
+        assert run["total_tokens"] == 0
+        assert run["estimated_cost"] is None
+
+    async def test_the_existing_detail_fields_are_all_still_there(self, client: AsyncClient):
+        """Additive means additive: nothing the console already reads may vanish."""
+        run = await create_run(client, auto_start=False)
+        detail = (await client.get(f"/api/runs/{run['id']}")).json()
+
+        assert set(detail) >= {
+            "run",
+            "stages",
+            "is_running",
+            "prd",
+            "architecture",
+            "code_manifest",
+            "qa_report",
+            "static_report",
+            "verification_report",
+            "service_failures",
+            "artifacts",
+            "has_zip",
+        }
+
+
 # ─────────────────────────────────────────────────────────────────
 # Review gates
 # ─────────────────────────────────────────────────────────────────
@@ -401,7 +510,7 @@ class TestFiles:
 
 
 class TestDownloads:
-    async def test_the_pdfs_are_downloadable(self, client: AsyncClient):
+    async def test_the_pdfs_are_downloadable(self, client: AsyncClient, with_pdfs):
         detail = await run_to_completion(client)
         run_id = detail["run"]["id"]
 
@@ -465,3 +574,59 @@ class TestReconciliation:
 
         assert detail["run"]["status"] == RunStatus.FAILED
         assert "restart" in detail["run"]["error"]
+
+
+class TestCors:
+    """The console's port is not ours to choose, so any loopback origin is allowed.
+
+    Next.js moves the console to 3001 when another dev server holds 3000, and an
+    exact-string allowlist naming a port answers the preflight with a bare 400 —
+    which the console can only report as "the API is not reachable".
+    """
+
+    async def preflight(self, client: AsyncClient, origin: str) -> int:
+        response = await client.options(
+            "/api/health",
+            headers={"Origin": origin, "Access-Control-Request-Method": "GET"},
+        )
+        return response.status_code
+
+    @pytest.mark.parametrize(
+        "origin",
+        [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",  # the port Next.js falls back to
+            "http://127.0.0.1:8080",
+            "http://[::1]:3000",
+        ],
+    )
+    async def test_loopback_origins_are_allowed(self, client: AsyncClient, origin: str) -> None:
+        assert await self.preflight(client, origin) == 200
+
+    @pytest.mark.parametrize(
+        "origin",
+        [
+            "http://evil.example",
+            "https://attacker.test",
+            "http://localhost.evil.example",  # suffix, not loopback
+            "http://127.0.0.1.evil.example",
+        ],
+    )
+    async def test_remote_origins_are_rejected(self, client: AsyncClient, origin: str) -> None:
+        assert await self.preflight(client, origin) == 400
+
+    async def test_loopback_can_be_switched_off(self, stub_llm, monkeypatch) -> None:
+        """A deployment that wants only ``cors_origins`` gets exactly that."""
+        from core.config import reset_settings_cache
+
+        monkeypatch.setenv("CORS_ALLOW_LOOPBACK", "false")
+        monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000")
+        reset_settings_cache()
+
+        app = create_app()
+        async with lifespan(app):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://testserver") as http:
+                assert await self.preflight(http, "http://localhost:3001") == 400
+                assert await self.preflight(http, "http://localhost:3000") == 200

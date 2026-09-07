@@ -223,16 +223,28 @@ class TokenBudget:
 
 # ── Shared registry ──────────────────────────────────────────────
 
-_budgets: dict[tuple[LLMProvider, str], TokenBudget] = {}
+_budgets: dict[tuple[LLMProvider, str | None, str], TokenBudget] = {}
 
 
-def budget_for(provider: LLMProvider, model: str, tokens_per_minute: int) -> TokenBudget:
-    """The one budget for this provider and model.
+def budget_for(
+    provider: LLMProvider,
+    model: str,
+    tokens_per_minute: int,
+    account: str | None = None,
+) -> TokenBudget:
+    """The one budget for this provider, account and model.
 
     Keyed the same way as the model cache, and shared for the same reason: the
-    quota is a property of the account, not of the caller.
+    quota is a property of the account, not of the caller. Which is also why
+    ``account`` is part of the key — a provider meters per organisation, so two
+    keys are two windows, and pacing them against one shared instance would
+    commit twice the capacity that actually exists.
+
+    ``None`` is the identity of a provider configured with a single unnumbered
+    key, and every caller that does not know about accounts produces it. A
+    single-key setup therefore lands on exactly the instance it always did.
     """
-    key = (provider, model)
+    key = (provider, account, model)
     if key not in _budgets:
         _budgets[key] = TokenBudget(tokens_per_minute)
     return _budgets[key]

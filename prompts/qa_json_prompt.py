@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
 from core import manifest as manifest_util
+from utils.json_utils import compact_json
 
 SYSTEM_PROMPT = """
 You are a Senior QA Engineer working in an AI-powered autonomous software development system.
@@ -91,8 +91,8 @@ executable tests for each service.
     )
 
     return prompt.format_messages(
-        prd_json=json.dumps(prd_json, indent=2, default=str),
-        architect_json=json.dumps(architect_json, indent=2, default=str),
+        prd_json=compact_json(prd_json),
+        architect_json=compact_json(architect_json),
         manifest_summary=manifest_util.summarise(code_manifest),
         actual_code_content=actual_code_content or "(no files were selected for review)",
     )

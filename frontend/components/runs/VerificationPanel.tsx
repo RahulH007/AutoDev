@@ -2,12 +2,14 @@ import { Check, Minus, ShieldCheck, Slash } from "lucide-react";
 
 import { LevelChip } from "@/components/ui/Primitives";
 import { cn } from "@/lib/utils";
-import type {
-  QaBug,
-  QaReport,
-  QaServiceReport,
-  StaticReport,
-  VerificationReport,
+import {
+  UNATTRIBUTED,
+  type QaBug,
+  type QaReport,
+  type QaServiceReport,
+  type ServiceFailures,
+  type StaticReport,
+  type VerificationReport,
 } from "@/lib/api";
 
 /**
@@ -24,10 +26,12 @@ export default function VerificationPanel({
   staticReport,
   verification,
   qa,
+  serviceFailures = {},
 }: {
   staticReport: StaticReport;
   verification: VerificationReport;
   qa: QaReport;
+  serviceFailures?: ServiceFailures;
 }) {
   const services = verification.services ?? [];
   const totalPassed = services.reduce((sum, service) => sum + service.passed, 0);
@@ -136,6 +140,8 @@ export default function VerificationPanel({
 
       <QaFindings reports={reports} />
 
+      <Attribution failures={serviceFailures} />
+
       {(qa.recommendations?.length ?? 0) > 0 && (
         <section className="rounded-xl border border-[var(--line)] bg-[var(--panel)] px-5 py-4">
           <h3 className="font-display text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
@@ -228,6 +234,67 @@ function QaFindings({ reports }: { reports: QaServiceReport[] }) {
               ))}
             </ul>
           </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ── Attribution ─────────────────────────────────────────────── */
+
+/**
+ * Which service each failure above belongs to.
+ *
+ * The pipeline currently sends the whole of the failure evidence to every
+ * service it regenerates, including the ones nothing was wrong with. This is the
+ * mapping that will let it stop doing that — shown here first so it can be read
+ * against the reports it was derived from before anything acts on it.
+ *
+ * Nothing is inferred beyond what the reports and the manifest already say. A
+ * failure whose service could not be established is listed under "Unattributed"
+ * rather than being assigned to one, because a wrong owner is worse than none.
+ */
+function Attribution({ failures }: { failures: ServiceFailures }) {
+  const entries = Object.entries(failures).filter(([, lines]) => lines.length > 0);
+  if (entries.length === 0) return null;
+
+  // Services first, in slug order; whatever could not be placed goes last.
+  const ordered = entries.sort(([a], [b]) => {
+    if (a === UNATTRIBUTED) return 1;
+    if (b === UNATTRIBUTED) return -1;
+    return a.localeCompare(b);
+  });
+  const total = ordered.reduce((sum, [, lines]) => sum + lines.length, 0);
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel)]">
+      <header className="flex items-baseline justify-between gap-3 border-b border-[var(--line)] px-5 py-3">
+        <span className="font-display text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+          Failures by service
+        </span>
+        <span className="font-mono text-[10.5px] text-[var(--muted-soft)]">
+          {total} across {ordered.length} bucket{ordered.length === 1 ? "" : "s"}
+        </span>
+      </header>
+
+      <div className="divide-y divide-[var(--line)]">
+        {ordered.map(([service, lines]) => (
+          <details key={service} className="group px-5 py-3">
+            <summary className="flex cursor-pointer items-baseline justify-between gap-3 list-none">
+              <span
+                className={cn(
+                  "font-mono text-[11.5px]",
+                  service === UNATTRIBUTED ? "text-[var(--muted)]" : "text-[var(--text)]",
+                )}
+              >
+                {service === UNATTRIBUTED ? "Unattributed" : service}
+              </span>
+              <span className="shrink-0 font-mono text-[10.5px] text-[var(--muted-soft)]">
+                {lines.length} failure{lines.length === 1 ? "" : "s"}
+              </span>
+            </summary>
+            <Terminal className="max-h-48">{lines.join("\n")}</Terminal>
+          </details>
         ))}
       </div>
     </section>
